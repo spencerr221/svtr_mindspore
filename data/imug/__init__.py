@@ -1,7 +1,7 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+# from __future__ import absolute_import
+# from __future__ import division
+# from __future__ import print_function
+# from __future__ import unicode_literals
 
 # from .iaa_augment import IaaAugment
 # from .make_border_map import MakeBorderMap
@@ -9,7 +9,7 @@ from __future__ import unicode_literals
 # from .random_crop_data import EastRandomCropData, RandomCropImgMask
 # from .make_pse_gt import MakePseGt
 
-from .rec_img_aug import RecAug
+from .rec_img_aug import RecResizeImg
 
 # from .rec_img_aug import BaseDataAugmentation, RecAug, RecConAug, RecResizeImg, ClsResizeImg, \
 #     SRNRecResizeImg, GrayRecResizeImg, SARRecResizeImg, PRENResizeImg, \
@@ -63,4 +63,4 @@ def create_operators(op_param_list, global_config=None):
             param.update(global_config)
         op = eval(op_name)(**param)
         ops.append(op)
-    return 
+    return ops
