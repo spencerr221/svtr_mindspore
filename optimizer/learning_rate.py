@@ -3,6 +3,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import mindspore.nn as nn
+
 class Cosine(object):
     """
     Cosine learning rate decay
@@ -23,20 +25,30 @@ class Cosine(object):
                  **kwargs):
         super(Cosine, self).__init__()
         self.learning_rate = learning_rate
-        self.T_max = step_each_epoch * epochs
+        self.total_step = step_each_epoch * epochs            #trainging steps
+        self.step_per_epoch=step_each_epoch
         self.last_epoch = last_epoch
-        self.warmup_epoch = round(warmup_epoch * step_each_epoch)
+        self.warmup_epoch=warmup_epoch
+        self.warmup_steps = round(warmup_epoch * step_each_epoch)    #warming up steps
 
     def __call__(self):
-        learning_rate = lr.CosineAnnealingDecay(    #TODO: fix
-            learning_rate=self.learning_rate,
-            T_max=self.T_max,
-            last_epoch=self.last_epoch)
+        learning_rate = nn.cosine_decay_lr(    #TODO: fix nn.cosine_decay_lr to lr.CosineAnnealingDecay
+            max_lr=self.learning_rate,
+            min_lr=0,
+            total_step=self.total_step,
+            step_per_epoch=self.step_per_epoch,
+            decay_epoch=epochs)
+            # T_max=self.T_max,
+            # last_epoch=self.last_epoch)
         if self.warmup_epoch > 0:
-            learning_rate = lr.LinearWarmup(      #TODO: fix
-                learning_rate=learning_rate,
-                warmup_steps=self.warmup_epoch,
-                start_lr=0.0,
-                end_lr=self.learning_rate,
-                last_epoch=self.last_epoch)
+            if self.total_step > self.warmup_steps:
+                learning_rate=learning_rate
+                else:
+                    print("nn.warmup_lr")
+                    learning_rate = nn.warmup_lr(      #TODO: fix
+                        learning_rate=learning_rate,
+                        warmup_epoch=self.warmup_epoch,
+                        total_step=self.total_step,
+                        step_per_epoch=self.step_per_epoch
+                       )
         return learning_rate
