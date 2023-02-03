@@ -1,8 +1,8 @@
 
 from mindspore import nn, ops
-from mindocr.modeling.backbones.svtrnet import Block, ConvBNLayer
+from ..backbones.svtrnet import Block, ConvBNLayer
 from mindspore.common.initializer import initializer, TruncatedNormal,Normal,Constant,HeUniform
-from mindocr.modeling.head.ctc_head import get_para_bias_attr
+from ..head.ctc_head import get_para_bias_attr
 import mindspore.common.initializer as init
 
 class Swish(nn.Cell):

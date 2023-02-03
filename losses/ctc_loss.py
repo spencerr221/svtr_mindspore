@@ -5,6 +5,7 @@ import mindspore as ms
 from mindspore import nn
 from mindspore import Tensor
 from mindspore import ops
+import mindspore.numpy as np
 
 class CTCLoss(nn.Cell):
     def __init__(self, use_focal_loss=False, **kwargs):
@@ -23,9 +24,9 @@ class CTCLoss(nn.Cell):
         label_lengths = batch[2].astype('int64')
         loss = self.loss_func(predicts, labels, preds_lengths, label_lengths)
         if self.use_focal_loss:
-            weight = paddle.exp(-loss)
-            weight = paddle.subtract(paddle.to_tensor([1.0]), weight)
-            weight = paddle.square(weight)
-            loss = paddle.multiply(loss, weight)
+            weight = ops.exp(-loss)
+            weight = np.subtract(Tensor([1.0]), weight)
+            weight = ops.Square(weight)
+            loss = np.multiply(loss, weight)
         loss = loss.mean()
         return {'loss': loss}

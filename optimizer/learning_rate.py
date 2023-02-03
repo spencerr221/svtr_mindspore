@@ -25,6 +25,7 @@ class Cosine(object):
                  **kwargs):
         super(Cosine, self).__init__()
         self.learning_rate = learning_rate
+        self.epochs = epochs
         self.total_step = step_each_epoch * epochs            #trainging steps
         self.step_per_epoch=step_each_epoch
         self.last_epoch = last_epoch
@@ -37,18 +38,18 @@ class Cosine(object):
             min_lr=0,
             total_step=self.total_step,
             step_per_epoch=self.step_per_epoch,
-            decay_epoch=epochs)
+            decay_epoch=self.epochs)
             # T_max=self.T_max,
             # last_epoch=self.last_epoch)
         if self.warmup_epoch > 0:
             if self.total_step > self.warmup_steps:
                 learning_rate=learning_rate
-                else:
-                    print("nn.warmup_lr")
-                    learning_rate = nn.warmup_lr(      #TODO: fix
-                        learning_rate=learning_rate,
-                        warmup_epoch=self.warmup_epoch,
-                        total_step=self.total_step,
-                        step_per_epoch=self.step_per_epoch
-                       )
+            else:
+                print("nn.warmup_lr")
+                learning_rate = nn.warmup_lr(      #TODO: fix
+                    learning_rate=learning_rate,
+                    warmup_epoch=self.warmup_epoch,
+                    total_step=self.total_step,
+                    step_per_epoch=self.step_per_epoch
+                   )
         return learning_rate

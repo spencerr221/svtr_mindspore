@@ -1,5 +1,6 @@
 import numpy as np
 import re
+from mindspore import Tensor
 
 class BaseRecLabelDecode(object):
     """ Convert between text-label and text-index """
@@ -97,7 +98,7 @@ class CTCLabelDecode(BaseRecLabelDecode):
     def __call__(self, preds, label=None, *args, **kwargs):
         if isinstance(preds, tuple) or isinstance(preds, list):
             preds = preds[-1]
-        if isinstance(preds, paddle.Tensor):
+        if isinstance(preds, Tensor):
             preds = preds.numpy()
         preds_idx = preds.argmax(axis=2)
         preds_prob = preds.max(axis=2)

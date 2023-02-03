@@ -13,13 +13,13 @@ import copy
 
 from typing import Optional
 import os
-from mindocr.data.lmdb_dataset import LMDBDataSet
+from ..data.lmdb_dataset import LMDBDataSet
 from mindspore.dataset import GeneratorDataset, DistributedSampler
 
-import mindspore.datset as ds 
+import mindspore.dataset as ds
 
 
-__all__ = ["create_dataset"]
+__all__ = ["build_dataloader"]
 
 def term_mp(sig_num, frame):
     """ kill all child processes
@@ -31,9 +31,7 @@ def term_mp(sig_num, frame):
 
 def build_dataloader(
     config, 
-    mode, 
-    device, 
-    logger, 
+    mode,
     seed=None,
     shuffle: bool = True,
     num_samples: Optional[bool] = None,
@@ -72,12 +70,12 @@ def build_dataloader(
         #     shuffle=shuffle,
         #     drop_last=drop_last)
         if shuffle:
-            sampler = ds.RandomSampler(replacement=False, num_samples=num_samples)
+            batch_sampler = ds.RandomSampler(replacement=False, num_samples=num_samples)
         else:
-            sampler = ds.SequentialSampler(num_samples=num_samples)
-    mindspore_kwargs = dict(shuffle=None, sampler=sampler,
-                        num_parallel_workers=num_parallel_workers, **kwargs)
-    dataset_generator = LMDBDataSet(config, mode, logger, seed)
+            batch_sampler = ds.SequentialSampler(num_samples=num_samples)
+    mindspore_kwargs = dict(shuffle=None, sampler=batch_sampler,
+                        num_parallel_workers=num_workers)   #TODO: num_parallel_workers=num_shards
+    dataset_generator = LMDBDataSet(config, mode, seed)
     dataset = GeneratorDataset(dataset_generator,**mindspore_kwargs) #TODO: fix no column names
 
     # support exit using ctrl+c

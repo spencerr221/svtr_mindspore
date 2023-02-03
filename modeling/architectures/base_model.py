@@ -3,10 +3,10 @@ from __future__ import division
 from __future__ import print_function
 
 from mindspore import nn
-from mindocr.modeling.transforms import build_transform
-from mindocr.modeling.backbones import build_backbone
-from mindocr.modeling.necks import build_neck
-from mindocr.modeling.head import build_head
+from ..transforms import build_transform
+from ..backbones import build_backbone
+from ..necks import build_neck
+from ..head import build_head
 
 __all__ = ['BaseModel']
 
@@ -64,7 +64,7 @@ class BaseModel(nn.Cell):
 
         self.return_all_feats = config.get("return_all_feats", False)
 
-    def forward(self, x, data=None):
+    def construct(self, x, data=None):
 
         y = dict()
         if self.use_transform:
@@ -111,3 +111,7 @@ class BaseModel(nn.Cell):
                 return {final_name: x}
         else:
             return x
+
+#
+# class BaseModelWithLoss(nn.Cell):
+

@@ -6,11 +6,11 @@ import string
 import six
 from PIL import Image
 
-from .imaug import transform, create_operators
+from imug import transform, create_operators
 
 
 class LMDBDataSet:
-    def __init__(self, config, mode, logger, seed=None):
+    def __init__(self, config, mode,seed=None):
         super(LMDBDataSet, self).__init__()
 
         global_config = config['Global']
@@ -21,7 +21,6 @@ class LMDBDataSet:
         self.do_shuffle = loader_config['shuffle']
 
         self.lmdb_sets = self.load_hierarchical_lmdb_dataset(data_dir)
-        logger.info("Initialize indexs of datasets:%s" % data_dir)
         self.data_idx_order_list = self.dataset_traversal()
         if self.do_shuffle:
             np.random.shuffle(self.data_idx_order_list)
