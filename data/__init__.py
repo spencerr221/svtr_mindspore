@@ -59,23 +59,26 @@ def build_dataloader(
     else:
         use_shared_memory = True
 
-    if mode == "Train":
-        # Distribute data to multiple cards
-        batch_sampler = DistributedSampler(num_shards, shard_id, shuffle=shuffle, num_samples=num_samples)   # TODO add params
-    else:
-        # Distribute data to single card
-        # batch_sampler = BatchSampler(
-        #     dataset=dataset,
-        #     batch_size=batch_size,
-        #     shuffle=shuffle,
-        #     drop_last=drop_last)
-        if shuffle:
-            batch_sampler = ds.RandomSampler(replacement=False, num_samples=num_samples)
-        else:
-            batch_sampler = ds.SequentialSampler(num_samples=num_samples)
-    mindspore_kwargs = dict(shuffle=None, sampler=batch_sampler,
-                        num_parallel_workers=num_workers)   #TODO: num_parallel_workers=num_shards
-    dataset_generator = LMDBDataSet(config, mode, seed)
+    # if mode == "Train":
+    #     # Distribute data to multiple cards
+    #     batch_sampler = DistributedSampler(num_shards, shard_id, shuffle=shuffle, num_samples=num_samples)   # TODO add params, num_shards=none
+    # else:
+    #     # Distribute data to single card
+    #     # batch_sampler = BatchSampler(
+    #     #     dataset=dataset,
+    #     #     batch_size=batch_size,
+    #     #     shuffle=shuffle,
+    #     #     drop_last=drop_last)
+    #     if shuffle:
+    #         batch_sampler = ds.RandomSampler(replacement=False, num_samples=num_samples)
+    #     else:
+    #         batch_sampler = ds.SequentialSampler(num_samples=num_samples)
+    # mindspore_kwargs = dict(shuffle=None, sampler=batch_sampler,
+    #                     num_parallel_workers=num_workers)   #TODO: num_parallel_workers=num_shards
+    mindspore_kwargs = dict(shuffle=None,
+                        num_parallel_workers=num_workers)
+    dataset_generator = eval(module_name)(config, mode, seed)
+    print("dataset_generator:",dataset_generator)
     dataset = GeneratorDataset(dataset_generator,**mindspore_kwargs) #TODO: fix no column names
 
     # support exit using ctrl+c

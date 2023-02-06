@@ -2,6 +2,8 @@ import math
 import cv2
 import numpy as np
 
+from .abinet_aug import CVColorJitter, SVTRGeometry, SVTRDeterioration
+from mindspore.dataset.transforms import Compose
 
 def resize_norm_img(img,
                     image_shape,
@@ -99,3 +101,34 @@ class SVTRRecResizeImg(object):
         data['valid_ratio'] = valid_ratio
         return data
 
+class SVTRRecAug(object):
+    def __init__(self,
+                 aug_type=0,
+                 geometry_p=0.5,
+                 deterioration_p=0.25,
+                 colorjitter_p=0.25,
+                 **kwargs):
+        self.transforms = Compose([
+            SVTRGeometry(
+                aug_type=aug_type,
+                degrees=45,
+                translate=(0.0, 0.0),
+                scale=(0.5, 2.),
+                shear=(45, 15),
+                distortion=0.5,
+                p=geometry_p),
+            SVTRDeterioration(
+                var=20, degrees=6, factor=4, p=deterioration_p),
+            CVColorJitter(
+                brightness=0.5,
+                contrast=0.5,
+                saturation=0.5,
+                hue=0.1,
+                p=colorjitter_p)
+        ])
+
+    def __call__(self, data):
+        img = data['image']
+        img = self.transforms(img)
+        data['image'] = img
+        return data

@@ -9,7 +9,8 @@
 # from .random_crop_data import EastRandomCropData, RandomCropImgMask
 # from .make_pse_gt import MakePseGt
 
-from .rec_img_aug import RecResizeImg
+from .rec_img_aug import RecResizeImg, SVTRRecAug, SVTRRecResizeImg
+
 
 # from .rec_img_aug import BaseDataAugmentation, RecAug, RecConAug, RecResizeImg, ClsResizeImg, \
 #     SRNRecResizeImg, GrayRecResizeImg, SARRecResizeImg, PRENResizeImg, \
@@ -19,8 +20,8 @@ from .rec_img_aug import RecResizeImg
 # from .randaugment import RandAugment
 # from .copy_paste import CopyPaste
 # from .ColorJitter import ColorJitter
-# from .operators import *
-# from .label_ops import *
+from .operators import *
+from .label_ops import *
 
 # from .east_process import *
 # from .sast_process import *

@@ -11,13 +11,13 @@ __dir__ = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(__dir__)
 sys.path.insert(0, os.path.abspath(os.path.join(__dir__, '..')))
 
-from ..data import build_dataloader
-from ..modeling.architectures import build_model
-from ..losses import build_loss
-from ..optimizer import build_optimizer
-from ..postprocess import build_post_process
-from ..metrics import build_metric
-from ..utils import load_config
+from svtr_mindspore.data import build_dataloader
+from svtr_mindspore.modeling.architectures import build_model
+from svtr_mindspore.losses import build_loss
+from svtr_mindspore.optimizer import build_optimizer
+from svtr_mindspore.postprocess import build_post_process
+from svtr_mindspore.metrics import build_metric
+from svtr_mindspore.utils import load_config
 
 import mindspore as ms
 from mindspore import FixedLossScaleManager, Model, CheckpointConfig, ModelCheckpoint
@@ -27,11 +27,12 @@ ms.set_seed(0)
 def train(args):
     # set up mindspore runing mode
     config_path = args.config_path
+    # print("config_path:",config_path)
     config=load_config(config_path)
     mode=config['Global']['mode']
     enable_graph_kernel=config['Global']['enable_graph_kernel']
     ms.set_context(mode=mode)
-    if mode ==0:
+    if mode == 0:
         ms.set_context(enable_graph_kernel=enable_graph_kernel)
 
     # set up distribution mode
@@ -43,7 +44,6 @@ def train(args):
             device_num=device_num,
             parallel_mode="data_parallel",
             gradients_mean=True,
-            parameter_broadcast=True,
         )
 
         if "DEVICE_ID" in os.environ:
@@ -55,7 +55,7 @@ def train(args):
     global_config = config['Global']
 
     # build dataloader
-    train_dataloader = build_dataloader(config, 'Train')
+    train_dataloader = build_dataloader(config, 'Train',num_shards=device_num)
 # TODO: eval
     # if config['Eval']:
     #     valid_dataloader = build_dataloader(config, 'Eval')

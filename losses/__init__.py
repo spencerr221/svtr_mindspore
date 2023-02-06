@@ -1,5 +1,5 @@
 import copy
-from ctc_loss import CTCLoss
+from .ctc_loss import CTCLoss
 
 def build_loss(config):
     support_dict = [
