@@ -34,9 +34,9 @@ class LMDBDataSet():
     def load_hierarchical_lmdb_dataset(self, data_dir):
         lmdb_sets = {}
         dataset_idx = 0
-        print("data_dir:",data_dir)
+        # print("data_dir:",data_dir)
         for dirpath, dirnames, filenames in os.walk(data_dir + '/'):
-            print("1,2,3",dirpath,dirnames,filenames)
+            # print("1,2,3",dirpath,dirnames,filenames)
             if not dirnames:
                 env = lmdb.open(
                     dirpath,
@@ -50,7 +50,7 @@ class LMDBDataSet():
                 lmdb_sets[dataset_idx] = {"dirpath":dirpath, "env":env, \
                     "txn":txn, "num_samples":num_samples}
                 dataset_idx += 1
-        print("lmdb_sets:",lmdb_sets)
+        # print("lmdb_sets:",lmdb_sets)
         return lmdb_sets
 
     def dataset_traversal(self):
@@ -68,7 +68,7 @@ class LMDBDataSet():
                 = list(range(tmp_sample_num))
             data_idx_order_list[beg_idx:end_idx, 1] += 1
             beg_idx = beg_idx + tmp_sample_num
-        print("data_idx_order_list:",data_idx_order_list)
+        # print("data_idx_order_list:",data_idx_order_list)
         return data_idx_order_list
 
     def get_img_data(self, value):
@@ -148,25 +148,27 @@ class LMDBDataSet():
         outs = transform(data, self.ops)
         if outs is None:
             return self.__getitem__(np.random.randint(self.__len__()))
-        print("outs:",outs)
-        return outs
+        # print("outs:",type(outs[0]),len(outs))
+        #TODO: what is ext_data for?
+        return outs[0],outs[1]
 
     def __len__(self):
         return self.data_idx_order_list.shape[0]
 
-if __name__ == "__main__":
-    import argparse
-    from svtr_mindspore.utils import load_config
-    data_dir = "/old/katekong/crnn/datasets/ocr-datasets/evaluation/IC03_860/"
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config_path", type=str, default="../configs/rec_svtrnet.yaml", help="Config file path")
-    args = parser.parse_args()
-    config_path = args.config_path
-    # print("config_path:",config_path)
-    config = load_config(config_path)
-    # config = {"data_dir": data_dir}
-    dataset = LMDBDataSet(config,mode='Train')
-    datasample = dataset.__getitem__(1)
-    import pdb
-
-    pdb.set_trace()
+# if __name__ == "__main__":
+#     import argparse
+#     from svtr_mindspore.utils import load_config
+#     data_dir = "/old/katekong/crnn/datasets/ocr-datasets/evaluation/IC03_860/"
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("--config_path", type=str, default="../configs/rec_svtrnet.yaml", help="Config file path")
+#     args = parser.parse_args()
+#     config_path = args.config_path
+#     # print("config_path:",config_path)
+#     config = load_config(config_path)
+#     # config = {"data_dir": data_dir}
+#     dataset = LMDBDataSet(config,mode='Train')
+#     datasample = dataset.__getitem__(1)
+#     # print("datasample:",datasample)
+#     # import pdb
+#     #
+#     # pdb.set_trace()

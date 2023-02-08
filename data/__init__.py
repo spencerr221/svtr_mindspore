@@ -79,7 +79,9 @@ def build_dataloader(
                         num_parallel_workers=num_workers)
     dataset_generator = eval(module_name)(config, mode, seed)
     print("dataset_generator:",dataset_generator)
-    dataset = GeneratorDataset(dataset_generator,**mindspore_kwargs) #TODO: fix no column names
+    dataset = GeneratorDataset(dataset_generator,["image","label"],**mindspore_kwargs)
+
+    print("dataset:",dataset.output_shapes())
 
     # support exit using ctrl+c
     signal.signal(signal.SIGINT, term_mp)

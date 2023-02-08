@@ -7,7 +7,7 @@ import sys
 import logging
 import argparse
 
-__dir__ = os.path.dirname(os.path.abspath(__file__))
+__dir__ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(__dir__)
 sys.path.insert(0, os.path.abspath(os.path.join(__dir__, '..')))
 
@@ -56,6 +56,7 @@ def train(args):
 
     # build dataloader
     train_dataloader = build_dataloader(config, 'Train',num_shards=device_num)
+    print("train_dataloader:",train_dataloader)
 # TODO: eval
     # if config['Eval']:
     #     valid_dataloader = build_dataloader(config, 'Eval')
@@ -221,11 +222,32 @@ def train(args):
 #         logger.info(e)
 #     logger.info("finish reader: {}, Success!".format(count))
 
+def reader(args):
+    config_path = args.config_path
+    config=load_config(config_path)
+    loader=build_dataloader(config,'Train')
+    print("success")
+    # import time
+    # starttime = time.time()
+    # count = 0
+    # for data in loader:
+    #     count += 1
+    #     if count % 1 == 0:
+    #         batch_time = time.time() - starttime
+    #         starttime = time.time()
+    #         print("reader: {}, {}, {}".format(count, len(data[0]), batch_time))
+    # print("finish reader: {}, Success!".format(count))
+    # return outshape,out_batch_size
+    # print("outshape:",outshape,out_batch_size)
+
 
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     parser=argparse.ArgumentParser()
-    parser.add_argument("--config_path",type=str,default="../configs/rec_svtrnet.yaml",help="Config file path")
+    parser.add_argument("--config_path",type=str,default="configs/rec_svtrnet.yaml",help="Config file path")
     args = parser.parse_args()
+    ms.set_context(device_id=2)
     train(args)
+    # reader(args)
+    # print("out",out1,out2)
     # test_reader(config, device, logger)

@@ -27,7 +27,7 @@ import mindspore.numpy as np
 import mindspore.ops as ops
 from mindspore.common.initializer import initializer, Normal
 
-from tps_spatical_transformer import TPSSpatialTransformer
+from .tps_spatical_transformer import TPSSpatialTransformer
 sigmoid = nn.Sigmoid()
 
 def conv3x3_block(in_channels, out_channels, stride=1):

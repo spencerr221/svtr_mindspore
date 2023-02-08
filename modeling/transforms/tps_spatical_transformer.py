@@ -6,7 +6,8 @@ import math
 import mindspore
 from mindspore import nn, Parameter, Tensor
 # from mindspore.nn import functional as F
-import mindspore.numpy as np
+import numpy as np
+import mindspore.numpy as ms_np
 import mindspore.ops as ops
 from mindspore.common.initializer import initializer, Normal
 from mindspore.scipy.linalg import inv
@@ -34,12 +35,22 @@ def compute_partial_repr(input_points, control_points):
             control_points, (1, M, 2))
     # original implementation, very slow
     # pairwise_dist = torch.sum(pairwise_diff ** 2, dim = 2) # square of distance
+    print("pairwise_diff",type(pairwise_diff),pairwise_diff.dtype)
     pairwise_diff_square = pairwise_diff * pairwise_diff
+    cast = ops.Cast()
+    pairwise_diff_square=cast(pairwise_diff_square,mindspore.float32)
+    print("pairwise_diff_square:",type(pairwise_diff_square),len(pairwise_diff_square),pairwise_diff_square.dtype)
+    test_1=pairwise_diff_square[:, :, 0]
+    test_2=pairwise_diff_square[:, :,1]
+    print("test_1",test_1.shape,test_1.dtype)
     pairwise_dist = pairwise_diff_square[:, :, 0] + pairwise_diff_square[:, :,1]
-    repr_matrix = 0.5 * pairwise_dist * ops.log(pairwise_dist)
+    print("pairwise_dist",pairwise_dist)
+    repr_matrix = 0.5 * pairwise_dist * ms_np.log(pairwise_dist)
+    print("repr_matrix:",repr_matrix)
     # fix numerical error for 0 * log(0), substitute all nan with 0
     mask = np.array(repr_matrix != repr_matrix)
-    repr_matrix[mask] = 0
+    # print(mask.shape,mask)
+    # repr_matrix[mask] = 0
     return repr_matrix
 
 def grid_sample(input, grid, canvas=None):
@@ -69,20 +80,23 @@ class TPSSpatialTransformer(nn.Cell):
         N = num_control_points
 
         # create padded kernel matrix
-        forward_kernel = ops.Zeros((N + 3, N + 3), mindspore.float32)
+        print("test here:",N+3)
+        forward_kernel = np.zeros((N + 3, N + 3))
+
         target_control_partial_repr = compute_partial_repr(
             target_control_points, target_control_points)
-        target_control_partial_repr = ops.cast(target_control_partial_repr,
-                                                  forward_kernel.dtype)
+        target_control_partial_repr = ops.cast(target_control_partial_repr,mindspore.float32)
         forward_kernel[:N, :N] = target_control_partial_repr
         forward_kernel[:N, -3] = 1
         forward_kernel[-3, :N] = 1
-        target_control_points = ops.cast(target_control_points,
-                                            forward_kernel.dtype)
+        target_control_points = ops.cast(target_control_points,mindspore.float32)
         forward_kernel[:N, -2:] = target_control_points
         forward_kernel[-2:, :N] = ops.transpose(
             target_control_points, input_perm=(1, 0))
         # compute inverse matrix
+        forward_kernel=Tensor(forward_kernel)
+        print("forward_kernel:",forward_kernel.shape)
+
         inverse_kernel = inv(forward_kernel)
 
         # create target cordinate matrix
@@ -107,7 +121,7 @@ class TPSSpatialTransformer(nn.Cell):
 
         # register precomputed matrices
         self.inverse_kernel = inverse_kernel
-        self.padding_matrix = ops.zeros((3, 2),mindspore.float32)
+        self.padding_matrix = np.zeros((3, 2),mindspore.float32)
         self.target_coordinate_repr = target_coordinate_repr
         self.target_control_points = target_control_points
 

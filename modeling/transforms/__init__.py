@@ -4,6 +4,7 @@ __all__ = ['build_transform']
 
 def build_transform(config):
     from .stn import STN_ON
+    from .tps_spatical_transformer import TPSSpatialTransformer
 
     support_dict = ['STN_ON']
 
