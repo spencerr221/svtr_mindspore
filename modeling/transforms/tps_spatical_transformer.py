@@ -35,18 +35,18 @@ def compute_partial_repr(input_points, control_points):
             control_points, (1, M, 2))
     # original implementation, very slow
     # pairwise_dist = torch.sum(pairwise_diff ** 2, dim = 2) # square of distance
-    print("pairwise_diff",type(pairwise_diff),pairwise_diff.dtype)
+    # print("pairwise_diff",type(pairwise_diff),pairwise_diff.dtype)
     pairwise_diff_square = pairwise_diff * pairwise_diff
     cast = ops.Cast()
     pairwise_diff_square=cast(pairwise_diff_square,mindspore.float32)
-    print("pairwise_diff_square:",type(pairwise_diff_square),len(pairwise_diff_square),pairwise_diff_square.dtype)
+    # print("pairwise_diff_square:",type(pairwise_diff_square),len(pairwise_diff_square),pairwise_diff_square.dtype)
     test_1=pairwise_diff_square[:, :, 0]
     test_2=pairwise_diff_square[:, :,1]
-    print("test_1",test_1.shape,test_1.dtype)
+    # print("test_1",test_1.shape,test_1.dtype)
     pairwise_dist = pairwise_diff_square[:, :, 0] + pairwise_diff_square[:, :,1]
-    print("pairwise_dist",pairwise_dist)
+    # print("pairwise_dist",pairwise_dist)
     repr_matrix = 0.5 * pairwise_dist * ms_np.log(pairwise_dist)
-    print("repr_matrix:",repr_matrix)
+    # print("repr_matrix:",repr_matrix)
     # fix numerical error for 0 * log(0), substitute all nan with 0
     mask = np.array(repr_matrix != repr_matrix)
     # print(mask.shape,mask)
@@ -80,7 +80,7 @@ class TPSSpatialTransformer(nn.Cell):
         N = num_control_points
 
         # create padded kernel matrix
-        print("test here:",N+3)
+        # print("test here:",N+3)
         forward_kernel = np.zeros((N + 3, N + 3))
 
         target_control_partial_repr = compute_partial_repr(
@@ -97,7 +97,8 @@ class TPSSpatialTransformer(nn.Cell):
         forward_kernel=Tensor(forward_kernel)
         print("forward_kernel:",forward_kernel.shape)
 
-        inverse_kernel = inv(forward_kernel)
+        # inverse_kernel = inv(forward_kernel)
+        inverse_kernel = forward_kernel
 
         # create target cordinate matrix
         HW = self.target_height * self.target_width
@@ -106,8 +107,20 @@ class TPSSpatialTransformer(nn.Cell):
                 range(self.target_height), range(self.target_width)))
         target_coordinate = Tensor(target_coordinate)  # HW x 2
         Y, X = ops.split(target_coordinate, output_num=target_coordinate.shape[1], axis=1)   # TODO may not work
-        Y = Y / (self.target_height - 1)
-        X = X / (self.target_width - 1)
+        Y=ops.cast(Y,mindspore.int32)
+        X = ops.cast(X, mindspore.int32)
+        # Y=Tensor(Y,dtype=mindspore.int16)
+        # X=Tensor(X,dtype=mindspore.int16)
+        # self.target_height=Tensor(self.target_height,dtype=mindspore.int16)
+        height_others=self.target_height-1
+        width_others=self.target_width-1
+        height_others=ops.cast(height_others,mindspore.int32)
+        width_others = ops.cast(width_others, mindspore.int32)
+        Y=np.divide(Y,height_others)
+        X=np.divide(X,width_others)
+        print("xxxxxxxxxxxxxxxx",type(X))
+        # Y = Y / (self.target_height - 1)
+        # X = X / (self.target_width - 1)
         target_coordinate = ops.concat(
             [X, Y], axis=1)  # convert from (y, x) to (x, y)
         target_coordinate_partial_repr = compute_partial_repr(
@@ -118,6 +131,7 @@ class TPSSpatialTransformer(nn.Cell):
                 target_coordinate
             ],
             axis=1)
+        print("---------------test----------here------")
 
         # register precomputed matrices
         self.inverse_kernel = inverse_kernel
@@ -145,4 +159,5 @@ class TPSSpatialTransformer(nn.Cell):
         # the input to grid_sample is normalized [-1, 1], but what we get is [0, 1]
         grid = 2.0 * grid - 1.0
         output_maps = grid_sample(input, grid, canvas=None)
+        print("come_here:",output_maps,source_coordinate)
         return output_maps, source_coordinate
