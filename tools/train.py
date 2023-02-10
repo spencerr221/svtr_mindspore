@@ -27,7 +27,6 @@ ms.set_seed(0)
 def train(args):
     # set up mindspore runing mode
     config_path = args.config_path
-    # print("config_path:",config_path)
     config=load_config(config_path)
     mode=config['Global']['mode']
     enable_graph_kernel=config['Global']['enable_graph_kernel']
@@ -130,11 +129,15 @@ def train(args):
     loss_class = build_loss(config['Loss'])
 
     # build optim
+    print("start_here",train_dataloader.get_dataset_size())
     optimizer, lr_scheduler = build_optimizer(
         config['Optimizer'],
         epochs=config['Global']['epoch_num'],
-        step_each_epoch=len(train_dataloader),
+        step_each_epoch=train_dataloader.get_dataset_size(),
+        # model=model.trainable_params())
         model=model)
+
+    print("finish there")
 
     # build metric
     eval_class = build_metric(config['Metric'])
@@ -184,7 +187,7 @@ def train(args):
     #     model = paddle.DataParallel(model)
 
 # callbacks:   #TODO:eval and infer
-    step_each_epoch=len(train_dataloader)
+    step_each_epoch=train_dataloader.get_dataset_size()
     epochs = config['Global']['epoch_num']
     callbacks = [LossMonitor(per_print_times=config["Global"]["per_print_time"]),
                TimeMonitor(data_size=step_each_epoch)]
@@ -195,7 +198,7 @@ def train(args):
         ckpt_cb=ModelCheckpoint(prefix="svtr",directory=save_ckpt_path,config=config_ck)
         callbacks.append(ckpt_cb)
 # start train
-    dataset_sink_mode = config["Global"]["device_target"] == "Ascend"
+    dataset_sink_mode = config["Global"]["device_target"] == "GPU"
     model.train(epochs,train_dataloader,callbacks,dataset_sink_mode)
 
 

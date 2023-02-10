@@ -10,8 +10,9 @@ import numpy as np
 import mindspore.numpy as ms_np
 import mindspore.ops as ops
 from mindspore.common.initializer import initializer, Normal
-from mindspore.scipy.linalg import inv
 import itertools
+
+matrix_inverse = ops.MatrixInverse(adjoint=False)
 
 def build_output_control_points(num_control_points, margins):
     margin_x, margin_y = margins
@@ -97,8 +98,7 @@ class TPSSpatialTransformer(nn.Cell):
         forward_kernel=Tensor(forward_kernel)
         print("forward_kernel:",forward_kernel.shape)
 
-        # inverse_kernel = inv(forward_kernel)
-        inverse_kernel = forward_kernel
+        inverse_kernel = matrix_inverse(forward_kernel)
 
         # create target cordinate matrix
         HW = self.target_height * self.target_width
@@ -106,21 +106,26 @@ class TPSSpatialTransformer(nn.Cell):
             itertools.product(
                 range(self.target_height), range(self.target_width)))
         target_coordinate = Tensor(target_coordinate)  # HW x 2
-        Y, X = ops.split(target_coordinate, output_num=target_coordinate.shape[1], axis=1)   # TODO may not work
-        Y=ops.cast(Y,mindspore.int32)
-        X = ops.cast(X, mindspore.int32)
-        # Y=Tensor(Y,dtype=mindspore.int16)
-        # X=Tensor(X,dtype=mindspore.int16)
-        # self.target_height=Tensor(self.target_height,dtype=mindspore.int16)
+        Y, X = ops.split(target_coordinate, output_num=target_coordinate.shape[1], axis=1)
+        #----------------for Ascend----------------
+        # Y=ops.cast(Y,mindspore.float16)
+        # X = ops.cast(X, mindspore.float16)
+        # height_others=self.target_height-1
+        # width_others=self.target_width-1
+        # height_others=ops.cast(height_others,mindspore.float16)
+        # width_others = ops.cast(width_others, mindspore.float16)
+        # Y=np.divide(Y,height_others)
+        # X=np.divide(X,width_others)
+
+        Y=ops.cast(Y,mindspore.int16)
+        X = ops.cast(X, mindspore.int16)
         height_others=self.target_height-1
         width_others=self.target_width-1
-        height_others=ops.cast(height_others,mindspore.int32)
-        width_others = ops.cast(width_others, mindspore.int32)
-        Y=np.divide(Y,height_others)
-        X=np.divide(X,width_others)
+        height_others=ops.cast(height_others,mindspore.int16)
+        width_others = ops.cast(width_others, mindspore.int16)
+        Y = Y / (height_others - 1)
+        X = X / (width_others - 1)
         print("xxxxxxxxxxxxxxxx",type(X))
-        # Y = Y / (self.target_height - 1)
-        # X = X / (self.target_width - 1)
         target_coordinate = ops.concat(
             [X, Y], axis=1)  # convert from (y, x) to (x, y)
         target_coordinate_partial_repr = compute_partial_repr(
@@ -128,14 +133,14 @@ class TPSSpatialTransformer(nn.Cell):
         target_coordinate_repr = ops.concat(
             [
                 target_coordinate_partial_repr, ops.ones((HW, 1), mindspore.float32),
-                target_coordinate
+                ops.cast(target_coordinate,mindspore.float32)
             ],
             axis=1)
         print("---------------test----------here------")
 
         # register precomputed matrices
         self.inverse_kernel = inverse_kernel
-        self.padding_matrix = np.zeros((3, 2),mindspore.float32)
+        self.padding_matrix = ms_np.zeros((3, 2),mindspore.float32)
         self.target_coordinate_repr = target_coordinate_repr
         self.target_control_points = target_control_points
 

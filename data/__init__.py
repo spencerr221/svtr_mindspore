@@ -75,13 +75,15 @@ def build_dataloader(
     #         batch_sampler = ds.SequentialSampler(num_samples=num_samples)
     # mindspore_kwargs = dict(shuffle=None, sampler=batch_sampler,
     #                     num_parallel_workers=num_workers)   #TODO: num_parallel_workers=num_shards
-    mindspore_kwargs = dict(shuffle=None,
+    mindspore_kwargs = dict(shuffle=shuffle,
                         num_parallel_workers=num_workers)
     dataset_generator = eval(module_name)(config, mode, seed)
     print("dataset_generator:",dataset_generator)
     dataset = GeneratorDataset(dataset_generator,["image","label"],**mindspore_kwargs)
+    dataset=dataset.batch(batch_size,drop_remainder=drop_last)
 
     print("dataset:",dataset.output_shapes())
+    print("dataset_batch",dataset.get_dataset_size())
 
     # support exit using ctrl+c
     signal.signal(signal.SIGINT, term_mp)

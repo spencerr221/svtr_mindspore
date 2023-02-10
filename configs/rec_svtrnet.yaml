@@ -3,7 +3,7 @@ Global:
   enable_graph_kernel: False
   distributed: False
   amp_level: 'O2'
-  device_target: Ascend
+  device_target: GPU
   use_gpu: True
   epoch_num: 20
   log_smooth_window: 20
@@ -87,7 +87,7 @@ Metric:
 Train:
   dataset:
     name: LMDBDataSet
-    data_dir: "/old/katekong/crnn/datasets/ocr-datasets/evaluation/IC03_860/"
+    data_dir: "/home/mindspore/lby_spencer/svtr_dataset/IC03_860"
     transforms:
       - DecodeImage: # load image
           img_mode: BGR
@@ -111,7 +111,7 @@ Train:
 Eval:
   dataset:
     name: LMDBDataSet
-    data_dir: "/old/katekong/crnn/datasets/ocr-datasets/evaluation/IC03_860/"
+    data_dir: "/home/mindspore/lby_spencer/svtr_dataset/IC03_860"
     transforms:
       - DecodeImage: # load image
           img_mode: BGR

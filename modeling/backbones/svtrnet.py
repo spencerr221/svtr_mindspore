@@ -548,7 +548,7 @@ class SVTRNet(nn.Cell):
             self.hardswish = nn.HSwish()
             self.dropout = nn.Dropout(keep_prob=1-last_drop)   #TODO: no mode
         if not prenorm:
-            self.norm = eval(norm_layer)(embed_dim[-1], epsilon=epsilon)
+            self.norm = eval(norm_layer)([embed_dim[-1]], epsilon=epsilon)
         self.use_lenhead = use_lenhead
         if use_lenhead:
             self.len_conv = nn.Dense(embed_dim[2], self.out_channels)

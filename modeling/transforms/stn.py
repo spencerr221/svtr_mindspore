@@ -38,6 +38,7 @@ def conv3x3_block(in_channels, out_channels, stride=1):
         out_channels,
         kernel_size=3,
         stride=stride,
+        pad_mode="pad",
         padding=1,
         weight_init=Normal(mean=0.0, sigma=w),
         bias_init='zeros')
@@ -81,7 +82,7 @@ class STN(nn.Cell):
             512,
             num_ctrlpoints * 2,
             weight_init='zeros',
-            bias_init=nn.initializer.Assign(fc2_bias))    #TODO input is one dimision matrix
+            bias_init=fc2_bias)    #TODO input is one dimision matrix
 
     def init_stn(self):
         margin = 0.01
@@ -98,8 +99,10 @@ class STN(nn.Cell):
         elif self.activation == 'sigmoid':
             ctrl_points = -np.log(1. / ctrl_points - 1.)
         ctrl_points = Tensor(ctrl_points)
-        fc2_bias = ops.reshape(
-            ctrl_points, (ctrl_points.shape[0] * ctrl_points.shape[1]))
+        shape=ctrl_points.shape[0] * ctrl_points.shape[1]
+        print("ctrl_points,shape",ctrl_points.shape,shape)
+        fc2_bias = np.reshape(
+            ctrl_points, [ctrl_points.shape[0] * ctrl_points.shape[1]])
         return fc2_bias
 
     def construct(self, x: Tensor) -> Tensor:

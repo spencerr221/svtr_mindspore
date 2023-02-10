@@ -35,7 +35,7 @@ class Cosine(object):
     def __call__(self):
         learning_rate = nn.cosine_decay_lr(    #TODO: fix nn.cosine_decay_lr to lr.CosineAnnealingDecay
             max_lr=self.learning_rate,
-            min_lr=0,
+            min_lr=0.0,
             total_step=self.total_step,
             step_per_epoch=self.step_per_epoch,
             decay_epoch=self.epochs)

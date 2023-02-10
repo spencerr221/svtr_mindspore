@@ -3,8 +3,9 @@ from rapidfuzz.distance import Levenshtein
 
 import numpy as np
 import string
+from mindspore import nn
 
-class RecMetric(object):
+class RecMetric():
     def __init__(self,
                  main_indicator='acc',
                  is_filter=False,
