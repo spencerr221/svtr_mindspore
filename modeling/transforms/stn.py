@@ -133,7 +133,8 @@ class STN_ON(nn.Cell):
 
     def construct(self, image):
         stn_input = ops.interpolate(
-            image, sizes=self.tps_inputsize, mode="bilinear")
+            image, sizes=tuple(self.tps_inputsize), mode="bilinear")
         stn_img_feat, ctrl_points = self.stn_head(stn_input)
+        #TODO:
         x, _ = self.tps(image, ctrl_points)
         return x

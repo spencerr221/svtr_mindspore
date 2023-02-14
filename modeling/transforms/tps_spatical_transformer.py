@@ -56,7 +56,7 @@ def compute_partial_repr(input_points, control_points):
 
 def grid_sample(input, grid, canvas=None):
     # input.stop_gradient = False     #TODO may not work
-    output = ops.grid_sample(input, grid)
+    output = ops.grid_sample(input.astype(mindspore.float32), grid.astype(mindspore.float32))
     if canvas is None:
         return output
     else:
@@ -145,7 +145,7 @@ class TPSSpatialTransformer(nn.Cell):
         self.target_control_points = target_control_points
 
     def construct(self, input, source_control_points):
-        assert source_control_points.ndimension() == 3
+        assert source_control_points.ndim == 3
         assert source_control_points.shape[1] == self.num_control_points
         assert source_control_points.shape[2] == 2
         batch_size = ops.shape(source_control_points)[0]
@@ -154,8 +154,8 @@ class TPSSpatialTransformer(nn.Cell):
         padding_matrix = self.padding_matrix.expand_as(expand_as)
         Y = ops.concat([source_control_points, padding_matrix], 1)
         mapping_matrix = ops.matmul(self.inverse_kernel, Y)
-        source_coordinate = ops.matmul(self.target_coordinate_repr,
-                                          mapping_matrix)
+        mapping_matrix = ops.cast(mapping_matrix, mindspore.float16)
+        source_coordinate = ops.matmul(self.target_coordinate_repr,mapping_matrix)   #float32 and float32
 
         grid = ops.reshape(
             source_coordinate,
@@ -163,6 +163,6 @@ class TPSSpatialTransformer(nn.Cell):
         grid = grid.clip(0,1)  # the source_control_points may be out of [0, 1].
         # the input to grid_sample is normalized [-1, 1], but what we get is [0, 1]
         grid = 2.0 * grid - 1.0
+        input = ops.cast(input,mindspore.float32)
         output_maps = grid_sample(input, grid, canvas=None)
-        print("come_here:",output_maps,source_coordinate)
         return output_maps, source_coordinate

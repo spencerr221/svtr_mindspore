@@ -68,9 +68,9 @@ class BaseModel(nn.Cell):
 
         y = dict()
         if self.use_transform:
-            print("before transformer:",x.shape)    #before transformer: [64, 3, 64, 256]
+            print("before transformer:",x)    #before transformer: [64, 3, 64, 256]
             x = self.transform(x)
-            print("after transformer:", x.shape)   #after transformer: [64, 3, 32, 100]
+            print("after transformer:", x)   #after transformer: [64, 3, 32, 100]
         if self.use_backbone:
             print("before backbone:",x.shape)   #before backbone: [64, 3, 32, 100]
             x = self.backbone(x)

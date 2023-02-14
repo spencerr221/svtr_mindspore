@@ -177,7 +177,8 @@ def train(args):
     else:
 # TODO: dynamic loss scale
         loss_scale_manager = FixedLossScaleManager(loss_scale=config["Global"]["loss_scale"],drop_overflow_update=False)
-        model=Model(network=model,optimizer=optimizer,metrics=eval_class,amp_level=config["Global"]["amp_level"],loss_scale_manager=loss_scale_manager)
+        model=Model(network=model,loss_fn=loss_class,optimizer=optimizer,metrics={'RecMetric':eval_class},amp_level=config["Global"]["amp_level"],loss_scale_manager=loss_scale_manager)
+
 
     # # load pretrain model
     # pre_best_model_dict = load_model(config, model, optimizer,
@@ -198,7 +199,8 @@ def train(args):
         ckpt_cb=ModelCheckpoint(prefix="svtr",directory=save_ckpt_path,config=config_ck)
         callbacks.append(ckpt_cb)
 # start train
-    dataset_sink_mode = config["Global"]["device_target"] == "GPU"
+    dataset_sink_mode = config["Global"]["device_target"] == "Ascend"
+    print(epochs,train_dataloader,callbacks,dataset_sink_mode)
     model.train(epochs,train_dataloader,callbacks,dataset_sink_mode)
 
 

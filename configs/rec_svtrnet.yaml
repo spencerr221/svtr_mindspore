@@ -76,6 +76,9 @@ Architecture:
 
 Loss:
   name: CTCLoss
+  max_sequence_length: 25
+  max_label_length: 25
+  batch_size: 64
 
 PostProcess:
   name: CTCLabelDecode
@@ -102,7 +105,7 @@ Train:
           keep_keys: ['image', 'label', 'length'] # dataloader will return list in this order
   loader:
     shuffle: True
-    batch_size_per_card: 512
+    batch_size_per_card: 64
     drop_last: True
     num_workers: 8
 

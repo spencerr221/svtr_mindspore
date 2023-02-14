@@ -20,5 +20,4 @@ def build_metric(config):
         "metric only support {}".format(support_dict))
     module_class = eval(module_name)(**config)
     # module_class = module_name()
-    print("mmmmmmmmmmmmmmmmmmmmmmmmodule",module_class)
     return module_class

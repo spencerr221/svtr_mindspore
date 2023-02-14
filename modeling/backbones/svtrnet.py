@@ -24,7 +24,8 @@ def drop_path(x, drop_prob=0., training=False):
     shape = (x.shape[0], ) + (1, ) * (x.ndim - 1)  #?
     random_tensor = keep_prob + np.rand(shape, dtype=x.dtype)
     random_tensor = ops.floor(random_tensor)  # binarize
-    output = x.divide(keep_prob) * random_tensor
+
+    output = x / (keep_prob) * random_tensor
     return output
 
 class ConvBNLayer(nn.Cell):
@@ -388,11 +389,10 @@ class SubSample(nn.Cell):
     def construct(self, x: Tensor) -> Tensor:
 
         if self.types == 'Pool':
-            # x1 = self.avgpool(x)
-            # x2 = self.maxpool(x)
-            # x = (x1 + x2) * 0.5
-            # out = self.proj(x.flatten(2).transpose((0, 2, 1)))    #TODO flatten transpose
-            print("ooooooooooooooops")
+            x1 = self.avgpool(x)
+            x2 = self.maxpool(x)
+            x = (x1 + x2) * 0.5
+            out = self.proj(x.flatten(2).transpose((0, 2, 1)))    #TODO flatten transpose
         else:
             x = self.conv(x)
             Bm, Cm, Hm, Wm = x.shape
@@ -576,10 +576,10 @@ class SVTRNet(nn.Cell):
     def forward_features(self, x):
         # print("test_here",x)
         x = self.patch_embed(x)
-        print("after_patch_em:",x)
+        # print("after_patch_em:",x)
         x = x + self.pos_embed
         x = self.pos_drop(x)
-        print("after_pos_drop:", x)
+        # print("after_pos_drop:", x)
         for blk in self.blocks1:
             x = blk(x)
         # print("after_blk",x)
@@ -601,9 +601,8 @@ class SVTRNet(nn.Cell):
         return x
 
     def construct(self, x):
-        # print("begin here")
+        print("begin here")
         x = self.forward_features(x)
-        print("then",x)
         if self.use_lenhead:
             len_x = self.len_conv(x.mean(1))
             len_x = self.dropout_len(self.hardswish_len(len_x))
@@ -618,7 +617,7 @@ class SVTRNet(nn.Cell):
             x = self.last_conv(x)
             x = self.hardswish(x)
             x = self.dropout(x)
-        if self.use_lenhead:
-            return x, len_x
+        # if self.use_lenhead:
+        #     return x,len_x
         return x
 

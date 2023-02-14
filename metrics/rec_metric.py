@@ -5,7 +5,7 @@ import numpy as np
 import string
 from mindspore import nn
 
-class RecMetric():
+class RecMetric(nn.Metric):
     def __init__(self,
                  main_indicator='acc',
                  is_filter=False,
@@ -15,14 +15,14 @@ class RecMetric():
         self.is_filter = is_filter
         self.ignore_space = ignore_space
         self.eps = 1e-5
-        self.reset()
+        self.clear()
 
     def _normalize_text(self, text):
         text = ''.join(
             filter(lambda x: x in (string.digits + string.ascii_letters), text))
         return text.lower()
 
-    def __call__(self, pred_label, *args, **kwargs):
+    def update(self, pred_label, *args, **kwargs):
         preds, labels = pred_label
         correct_num = 0
         all_num = 0
@@ -41,12 +41,13 @@ class RecMetric():
         self.correct_num += correct_num
         self.all_num += all_num
         self.norm_edit_dis += norm_edit_dis
-        return {
-            'acc': correct_num / (all_num + self.eps),
-            'norm_edit_dis': 1 - norm_edit_dis / (all_num + self.eps)
-        }
+        # return {
+        #     'acc': correct_num / (all_num + self.eps),
+        #     'norm_edit_dis': 1 - norm_edit_dis / (all_num + self.eps)
+        # }
 
-    def get_metric(self):
+
+    def eval(self):
         """
         return metrics {
                  'acc': 0,
@@ -55,10 +56,10 @@ class RecMetric():
         """
         acc = 1.0 * self.correct_num / (self.all_num + self.eps)
         norm_edit_dis = 1 - self.norm_edit_dis / (self.all_num + self.eps)
-        self.reset()
+        self.clear()
         return {'acc': acc, 'norm_edit_dis': norm_edit_dis}
 
-    def reset(self):
+    def clear(self):
         self.correct_num = 0
         self.all_num = 0
         self.norm_edit_dis = 0
