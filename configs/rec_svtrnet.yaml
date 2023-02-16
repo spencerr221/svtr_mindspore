@@ -1,14 +1,14 @@
 Global:
   mode: 0  #Graph_mode=0,Pynative_mode=1
   enable_graph_kernel: False
-  distributed: False
+  distributed: True
   amp_level: 'O2'
   device_target: GPU
   use_gpu: True
   epoch_num: 20
   log_smooth_window: 20
   print_batch_step: 10
-  save_model_dir: ./output/rec/svtr/
+  save_model_dir: "/home/mindspore/lby_spencer/svtr_mindspore/svtr_mindspore/output/rec/svtr"
   save_epoch_step: 1
   # evaluation is run every 2000 iterations after the 0th iteration
   eval_batch_step: [0, 2000]
@@ -30,6 +30,9 @@ Global:
   per_print_time: 100
   save_checkpoint_steps: 3
   keep_checkpoint_max: 30
+  eval_interval: 1
+  eval_start_epoch: 1
+  eval_all_saved_ckpts: False
 
 
 Optimizer:
@@ -84,13 +87,13 @@ PostProcess:
   name: CTCLabelDecode
 
 Metric:
-  name: RecMetric
-  main_indicator: acc
+  name: SVTRAccuracy
+  print_flag: False
 
 Train:
   dataset:
     name: LMDBDataSet
-    data_dir: "/home/mindspore/lby_spencer/svtr_dataset/IC03_860"
+    data_dir: "/home/mindspore/lby_spencer/svtr_dataset/MJ_train"
     transforms:
       - DecodeImage: # load image
           img_mode: BGR
@@ -108,13 +111,12 @@ Train:
     batch_size_per_card: 64
     drop_last: True
     num_workers: 8
-
   save_checkpoint: True
 
 Eval:
   dataset:
     name: LMDBDataSet
-    data_dir: "/home/mindspore/lby_spencer/svtr_dataset/IC03_860"
+    data_dir: "/home/mindspore/lby_spencer/svtr_dataset/validation"
     transforms:
       - DecodeImage: # load image
           img_mode: BGR
@@ -128,5 +130,5 @@ Eval:
   loader:
     shuffle: False
     drop_last: False
-    batch_size_per_card: 256
+    batch_size_per_card: 64
     num_workers: 2

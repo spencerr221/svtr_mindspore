@@ -67,32 +67,24 @@ class BaseModel(nn.Cell):
     def construct(self, x, data=None):
 
         y = dict()
-        if self.use_transform:
-            print("before transformer:",x)    #before transformer: [64, 3, 64, 256]
-            x = self.transform(x)
-            print("after transformer:", x)   #after transformer: [64, 3, 32, 100]
-        if self.use_backbone:
-            print("before backbone:",x.shape)   #before backbone: [64, 3, 32, 100]
-            x = self.backbone(x)
-            print("after backbone:", x.shape)    #after backbone: [64, 192, 1, 25]
+        if self.use_transform:      # before transformer: [64, 3, 64, 256]
+            x = self.transform(x)    # after transformer: [64, 3, 32, 100]
+        if self.use_backbone:        # before backbone: [64, 3, 32, 100]
+            x = self.backbone(x)     # after backbone: [64, 192, 1, 25]
         if isinstance(x, dict):
             y.update(x)
         else:
             y["backbone_out"] = x
         final_name = "backbone_out"
-        if self.use_neck:
-            print("before neck:",x.shape)   #before neck: [64, 192, 1, 25]
-            x = self.neck(x)
-            print("after neck:",x.shape)  #after neck: [64, 25, 192]
+        if self.use_neck:     # before neck: [64, 192, 1, 25]
+            x = self.neck(x)    # after neck: [64, 25, 192]
             if isinstance(x, dict):
                 y.update(x)
             else:
                 y["neck_out"] = x
             final_name = "neck_out"
-        if self.use_head:
-            print("before head:",x.shape)   # before head: [64, 25, 192]
+        if self.use_head:    # before head: [64, 25, 192]
             x = self.head(x, targets=data)  # after head: [64, 25, 37]
-            print("after head:",x.shape)
             # for multi head, save ctc neck out for udml
             if isinstance(x, dict) and 'ctc_neck' in x.keys():
                 y["neck_out"] = x["ctc_neck"]
@@ -112,6 +104,4 @@ class BaseModel(nn.Cell):
         else:
             return x
 
-#
-# class BaseModelWithLoss(nn.Cell):
 

@@ -19,7 +19,6 @@ import mindspore.common.initializer as init
 #     bias_attr = ParamAttr(regularizer=regularizer, initializer=initializer)
 #     return [weight_attr, bias_attr]
 def get_para_bias_attr(k):
-    # regularizer = paddle.regularizer.L2Decay(l2_decay)
     stdv = 1.0 / math.sqrt(k * 1.0)
     initializer = init.Uniform(stdv)
     weight_attr = initializer
@@ -28,8 +27,8 @@ def get_para_bias_attr(k):
 
 class CTCHead(nn.Cell):
     def __init__(self,
-                 in_channels = 192,    #TODO forward
-                 out_channels = 37,    #TODO forward
+                 in_channels,    #TODO forward
+                 out_channels,    #TODO forward
                  fc_decay=0.0004,
                  mid_channels=None,
                  return_feats=False,
@@ -63,6 +62,7 @@ class CTCHead(nn.Cell):
 
 
     def construct(self, x, targets=None):
+
         if self.mid_channels is None:
             predicts = self.fc(x)
         else:

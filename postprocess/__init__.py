@@ -10,24 +10,8 @@ __all__ = ['build_post_process']
 from .rec_postprocess import CTCLabelDecode
 
 def build_post_process(config, global_config=None):
-    # support_dict = [
-    #     'DBPostProcess', 'EASTPostProcess', 'SASTPostProcess', 'FCEPostProcess',
-    #     'CTCLabelDecode', 'AttnLabelDecode', 'ClsPostProcess', 'SRNLabelDecode',
-    #     'PGPostProcess', 'DistillationCTCLabelDecode', 'TableLabelDecode',
-    #     'DistillationDBPostProcess', 'NRTRLabelDecode', 'SARLabelDecode',
-    #     'SEEDLabelDecode', 'VQASerTokenLayoutLMPostProcess',
-    #     'VQAReTokenLayoutLMPostProcess', 'PRENLabelDecode',
-    #     'DistillationSARLabelDecode', 'ViTSTRLabelDecode', 'ABINetLabelDecode',
-    #     'TableMasterLabelDecode', 'SPINLabelDecode',
-    #     'DistillationSerPostProcess', 'DistillationRePostProcess',
-    #     'VLLabelDecode', 'PicoDetPostProcess', 'CTPostProcess',
-    #     'RFLLabelDecode', 'DRRGPostprocess', 'CANLabelDecode'
-    # ]
 
     support_dict = ['CTCLabelDecode']
-    # if config['name'] == 'PSEPostProcess':
-    #     from .pse_postprocess import PSEPostProcess
-    #     support_dict.append('PSEPostProcess')
 
     config = copy.deepcopy(config)
     module_name = config.pop('name')

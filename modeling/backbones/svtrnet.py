@@ -54,13 +54,9 @@ class ConvBNLayer(nn.Cell):
         self.act = act
 
     def construct(self, inputs: Tensor) -> Tensor:
-        # print("test_here", inputs)
         out = self.conv(inputs)
-        # print("after_conv", out)
         out = self.norm(out)
-        # print("after_norm", out)
         out = self.act(out)
-        # print("after_act", out)
         return out
 
 class DropPath(nn.Cell):
@@ -167,7 +163,6 @@ class Attention(nn.Cell):
             for h in range(0, H):
                 for w in range(0, W):
                     mask[h * W + w, h:h + hk, w:w + wk] = 0.
-            # print(mask.shape)
             mask_mid = mask[:, hk // 2:H + hk // 2, wk // 2:W + wk // 2]
             mask_ms=ops.flatten(mask_mid)
             mask_inf = np.full([H * W, H * W], float('-inf'), dtype='float32')   #param
@@ -184,14 +179,11 @@ class Attention(nn.Cell):
             C = self.C
         else:
             _, N, C = x.shape
-        # print("self.qkv(x):",self.qkv(x).shape)
         Bs, Cs, Hs = self.qkv(x).shape
         qkv = ops.reshape(self.qkv(x), (Bs, N, 3, self.num_heads, C // self.num_heads))
         qkv = ops.transpose(qkv, (2, 0, 3, 1, 4))
         q, k, v = qkv[0] * self.scale, qkv[1], qkv[2]
         attn=ops.BatchMatMul()(q, (k.transpose((0, 1, 3, 2))))  # matmul
-        # print("attn",attn.shape)
-        # attn = (q.matmul(k.transpose((0, 1, 3, 2))))
         if self.mixer == 'Local':
             attn += self.mask
         softmax_fn=ops.Softmax(-1)
@@ -200,7 +192,6 @@ class Attention(nn.Cell):
         # x = (attn.matmul(v)).transpose((0, 2, 1, 3)).reshape((0, N, C))
         attn_mat=ops.BatchMatMul()(attn, v)
         attn_mat=ops.transpose(attn_mat,(0, 2, 1, 3))
-        # print("attn.shape:",attn.shape)
         Ba, Na, Ca, Ha=attn.shape
         x=ops.reshape(attn_mat,(Ba, N, C))
         # x = attn_mat.transpose((0, 2, 1, 3)).reshape((0, N, C))    #matmul   #TODO transpose
@@ -335,18 +326,13 @@ class PatchEmbed(nn.Cell):
                 1] // patch_size[1]
 
     def construct(self, x: Tensor) -> Tensor:
-        # print('before_patch',x)
         B, C, H, W = x.shape
-        # print("test",x.shape)
         assert H == self.img_size[0] and W == self.img_size[1], \
             f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
         mid_x=self.proj(x)
-        # print('after_proj',mid_x)
         Bm, Cm, Hm, Wm =mid_x.shape
         flat_x=ops.reshape(mid_x, (Bm, Cm, Hm * Wm))
-        # print("flat_x:",mid_x.shape,flat_x.shape)
         x = flat_x.transpose((0, 2, 1))
-        # print("flat_x_after:", x.shape)
         return x
 
 class SubSample(nn.Cell):
@@ -367,7 +353,6 @@ class SubSample(nn.Cell):
             #     kernel_size=[3, 5], stride=stride, padding=[1, 2])   #not support list
             # self.proj = nn.Dense(in_channels, out_channels)
         else:
-            # print("stride",type(stride),stride)
             self.conv = nn.Conv2d(
                 in_channels,
                 out_channels,
@@ -384,7 +369,6 @@ class SubSample(nn.Cell):
         else:
             self.act = None
 
-        # print("done")
 
     def construct(self, x: Tensor) -> Tensor:
 
@@ -448,13 +432,8 @@ class SVTRNet(nn.Cell):
         num_patches = self.patch_embed.num_patches
         self.HW = [img_size[0] // (2**sub_num), img_size[1] // (2**sub_num)]
 
-        # self.pos_embed = self.create_parameter(
-        #     shape=[1, num_patches, embed_dim[0]], default_initializer=zeros_)
-
         self.pos_embed=Parameter(zeros((1,num_patches,embed_dim[0]),mindspore.float32))
 
-        # self.add_parameter("pos_embed", self.pos_embed)
-        # self.insert_param_to_cell("pos_embed", self.pos_embed)
         self.pos_drop = nn.Dropout(keep_prob=1-drop_rate)
         Block_unit = eval(block_unit)
         start=Tensor(0,mindspore.float32)
@@ -555,7 +534,6 @@ class SVTRNet(nn.Cell):
             self.hardswish_len = nn.HSwish()
             self.dropout_len = nn.Dropout(
                 keep_prob=1-last_drop) #TODO: no mode
-        # print("self.pos_embed",Tensor(self.pos_embed))
         self.pos_embed = init.initializer(TruncatedNormal(sigma=0.02), self.pos_embed.shape, mindspore.float32)
         # self.pos_embed = init.initializer(init.Constant(0), self.pos_embed.shape, mindspore.float32)  TODO fortest
         # trunc_normal_(Tensor(self.pos_embed))
@@ -574,15 +552,11 @@ class SVTRNet(nn.Cell):
                 m.gamma.set_data(init.initializer(init.Constant(1), m.gamma.shape))
 
     def forward_features(self, x):
-        # print("test_here",x)
         x = self.patch_embed(x)
-        # print("after_patch_em:",x)
         x = x + self.pos_embed
         x = self.pos_drop(x)
-        # print("after_pos_drop:", x)
         for blk in self.blocks1:
             x = blk(x)
-        # print("after_blk",x)
         if self.patch_merging is not None:
 
             x = self.sub_sample1(
@@ -601,7 +575,6 @@ class SVTRNet(nn.Cell):
         return x
 
     def construct(self, x):
-        print("begin here")
         x = self.forward_features(x)
         if self.use_lenhead:
             len_x = self.len_conv(x.mean(1))
@@ -617,7 +590,7 @@ class SVTRNet(nn.Cell):
             x = self.last_conv(x)
             x = self.hardswish(x)
             x = self.dropout(x)
-        # if self.use_lenhead:
+        # if self.use_lenhead:     #TODO: for graph mode
         #     return x,len_x
         return x
 

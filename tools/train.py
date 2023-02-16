@@ -13,16 +13,26 @@ sys.path.insert(0, os.path.abspath(os.path.join(__dir__, '..')))
 
 from svtr_mindspore.data import build_dataloader
 from svtr_mindspore.modeling.architectures import build_model
+from svtr_mindspore.modeling.wrapper.wrapper import with_loss_cell
 from svtr_mindspore.losses import build_loss
 from svtr_mindspore.optimizer import build_optimizer
 from svtr_mindspore.postprocess import build_post_process
 from svtr_mindspore.metrics import build_metric
 from svtr_mindspore.utils import load_config
+from svtr_mindspore.utils import EvalCallback
 
 import mindspore as ms
 from mindspore import FixedLossScaleManager, Model, CheckpointConfig, ModelCheckpoint
 from mindspore.train.callback import TimeMonitor, LossMonitor
 ms.set_seed(0)
+
+
+def apply_eval(eval_param):
+    evaluation_model = eval_param["model"]
+    eval_ds = eval_param["dataset"]
+    metrics_name = eval_param["metrics_name"]
+    res = evaluation_model.eval(eval_ds)
+    return res[metrics_name]
 
 def train(args):
     # set up mindspore runing mode
@@ -55,16 +65,16 @@ def train(args):
 
     # build dataloader
     train_dataloader = build_dataloader(config, 'Train',num_shards=device_num)
-    print("train_dataloader:",train_dataloader)
 # TODO: eval
-    # if config['Eval']:
-    #     valid_dataloader = build_dataloader(config, 'Eval')
-    # else:
-    #     valid_dataloader = None
+    if config['Eval']:
+        valid_dataloader = build_dataloader(config, 'Eval')
+    else:
+        valid_dataloader = None
 
     # build post process
     post_process_class = build_post_process(config['PostProcess'],
                                             global_config)
+
 
     # build model
     # for rec algorithm
@@ -115,135 +125,68 @@ def train(args):
 
         if config['PostProcess']['name'] == 'SARLabelDecode':  # for SAR model
             config['Loss']['ignore_index'] = char_num - 1
-
     model = build_model(config['Architecture'])
 
-    # use_sync_bn = config["Global"].get("use_sync_bn", False)
-    # if use_sync_bn:
-    #     model = paddle.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-    #     logger.info('convert_sync_batchnorm')
-##TODO: static?
-    # model = apply_to_static(model, config, logger)
 
     # build loss
     loss_class = build_loss(config['Loss'])
 
+    network = with_loss_cell(model, loss_class)
+
     # build optim
-    print("start_here",train_dataloader.get_dataset_size())
     optimizer, lr_scheduler = build_optimizer(
         config['Optimizer'],
         epochs=config['Global']['epoch_num'],
         step_each_epoch=train_dataloader.get_dataset_size(),
-        # model=model.trainable_params())
         model=model)
 
-    print("finish there")
 
     # build metric
-    eval_class = build_metric(config['Metric'])
-
-    # logger.info('train dataloader has {} iters'.format(len(train_dataloader)))
-    # if valid_dataloader is not None:
-    #     logger.info('valid dataloader has {} iters'.format(
-    #         len(valid_dataloader)))
-
-    # use_amp = config["Global"].get("use_amp", False)
-    # amp_level = config["Global"].get("amp_level", 'O2')
-    # amp_custom_black_list = config['Global'].get('amp_custom_black_list', [])
-    # if use_amp:
-    #     AMP_RELATED_FLAGS_SETTING = {'FLAGS_max_inplace_grad_add': 8, }
-    #     if paddle.is_compiled_with_cuda():
-    #         AMP_RELATED_FLAGS_SETTING.update({
-    #             'FLAGS_cudnn_batchnorm_spatial_persistent': 1
-    #         })
-    #     paddle.fluid.set_flags(AMP_RELATED_FLAGS_SETTING)
-    #     scale_loss = config["Global"].get("scale_loss", 1.0)
-    #     use_dynamic_loss_scaling = config["Global"].get(
-    #         "use_dynamic_loss_scaling", False)
-    #     scaler = paddle.amp.GradScaler(
-    #         init_loss_scaling=scale_loss,
-    #         use_dynamic_loss_scaling=use_dynamic_loss_scaling)
-    #     if amp_level == "O2":
-    #         model, optimizer = paddle.amp.decorate(
-    #             models=model,
-    #             optimizers=optimizer,
-    #             level=amp_level,
-    #             master_weight=True)
-    # else:
-    scaler = None
+    eval_class = build_metric(config['Metric'],decoder=post_process_class)
 
     if config["Global"].get("use_ema", True):
         print("under_developing")
     else:
 # TODO: dynamic loss scale
         loss_scale_manager = FixedLossScaleManager(loss_scale=config["Global"]["loss_scale"],drop_overflow_update=False)
-        model=Model(network=model,loss_fn=loss_class,optimizer=optimizer,metrics={'RecMetric':eval_class},amp_level=config["Global"]["amp_level"],loss_scale_manager=loss_scale_manager)
+        # model=Model(network=model,loss_fn=loss_class,optimizer=optimizer,metrics={'RecMetric':eval_class},amp_level=config["Global"]["amp_level"],loss_scale_manager=loss_scale_manager)
+        model = Model(network=network, optimizer=optimizer, amp_level=config["Global"]["amp_level"], loss_scale_manager=loss_scale_manager)
 
-
-    # # load pretrain model
-    # pre_best_model_dict = load_model(config, model, optimizer,
-    #                                  config['Architecture']["model_type"])
-
-    # if config['Global']['distributed']:
-    #     model = paddle.DataParallel(model)
 
 # callbacks:   #TODO:eval and infer
-    step_each_epoch=train_dataloader.get_dataset_size()
+    step_each_epoch = train_dataloader.get_dataset_size()
     epochs = config['Global']['epoch_num']
-    callbacks = [LossMonitor(per_print_times=config["Global"]["per_print_time"]),
-               TimeMonitor(data_size=step_each_epoch)]
-#save checkpoints
     if config["Train"]["save_checkpoint"]:
-        save_ckpt_path=os.path.join(config["Global"]["save_model_dir"],'ckpt')
-        config_ck= CheckpointConfig(save_checkpoint_steps=config["Global"]["save_checkpoint_steps"],keep_checkpoint_max=config["Global"]["keep_checkpoint_max"])
-        ckpt_cb=ModelCheckpoint(prefix="svtr",directory=save_ckpt_path,config=config_ck)
-        callbacks.append(ckpt_cb)
+        save_ckpt_path = os.path.join(config["Global"]["save_model_dir"],'ckpt')
+
+    if valid_dataloader is not None and valid_dataloader.get_dataset_size() > 0:
+        # eval_model = Model(network=network.set_train(False),  optimizer=optimizer, loss_fn=loss_class, metrics={'SVTRMetric': eval_class}, amp_level=config["Global"]["amp_level"], loss_scale_manager=loss_scale_manager)
+        eval_model = Model(network=network.set_train(False), optimizer=optimizer, loss_fn=loss_class,
+                           metrics={'SVTRMetric': eval_class}, amp_level=config["Global"]["amp_level"],
+                           loss_scale_manager=loss_scale_manager)
+        eval_param_dict = {
+            "model": eval_model,
+            "dataset": valid_dataloader,
+            "metrics_name": "SVTRAccuracy"
+        }
+
+        eval_callback = EvalCallback(apply_eval, eval_param_dict, rank_id, interval=config['Global']["eval_interval"],
+                                     eval_start_epoch=config['Global']["eval_start_epoch"], save_best_ckpt=True,
+                                     ckpt_directory=save_ckpt_path, best_ckpt_name="best_acc.ckpt",
+                                     eval_all_saved_ckpts=config['Global']["eval_all_saved_ckpts"], metrics_name="acc")
+        callbacks = [eval_callback]
+    else:
+        callbacks = [LossMonitor(per_print_times=config["Global"]["per_print_time"]),
+               TimeMonitor(data_size=step_each_epoch)]
+# #save checkpoints
+#     if config["Train"]["save_checkpoint"]:
+#         save_ckpt_path = os.path.join(config["Global"]["save_model_dir"],'ckpt')
+#         config_ck = CheckpointConfig(save_checkpoint_steps=config["Global"]["save_checkpoint_steps"],keep_checkpoint_max=config["Global"]["keep_checkpoint_max"])
+#         ckpt_cb = ModelCheckpoint(prefix="svtr",directory=save_ckpt_path,config=config_ck)
+#         callbacks.append(ckpt_cb)
 # start train
-    dataset_sink_mode = config["Global"]["device_target"] == "Ascend"
-    print(epochs,train_dataloader,callbacks,dataset_sink_mode)
-    model.train(epochs,train_dataloader,callbacks,dataset_sink_mode)
-
-
-    # program.train(config, train_dataloader, valid_dataloader, device, model,
-    #               loss_class, optimizer, lr_scheduler, post_process_class,
-    #               eval_class, pre_best_model_dict, logger, vdl_writer, scaler,
-    #               amp_level, amp_custom_black_list)
-
-
-# def test_reader(config, device, logger):
-#     loader = build_dataloader(config, 'Train', device, logger)
-#     import time
-#     starttime = time.time()
-#     count = 0
-#     try:
-#         for data in loader():
-#             count += 1
-#             if count % 1 == 0:
-#                 batch_time = time.time() - starttime
-#                 starttime = time.time()
-#                 logger.info("reader: {}, {}, {}".format(
-#                     count, len(data[0]), batch_time))
-#     except Exception as e:
-#         logger.info(e)
-#     logger.info("finish reader: {}, Success!".format(count))
-
-def reader(args):
-    config_path = args.config_path
-    config=load_config(config_path)
-    loader=build_dataloader(config,'Train')
-    print("success")
-    # import time
-    # starttime = time.time()
-    # count = 0
-    # for data in loader:
-    #     count += 1
-    #     if count % 1 == 0:
-    #         batch_time = time.time() - starttime
-    #         starttime = time.time()
-    #         print("reader: {}, {}, {}".format(count, len(data[0]), batch_time))
-    # print("finish reader: {}, Success!".format(count))
-    # return outshape,out_batch_size
-    # print("outshape:",outshape,out_batch_size)
+    dataset_sink_mode = False
+    model.train(epochs, train_dataloader, callbacks, dataset_sink_mode)
 
 
 if __name__ == '__main__':
@@ -251,8 +194,5 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser()
     parser.add_argument("--config_path",type=str,default="configs/rec_svtrnet.yaml",help="Config file path")
     args = parser.parse_args()
-    ms.set_context(device_id=2)
+    # ms.set_context(device_id=[0,1,2,3,4])
     train(args)
-    # reader(args)
-    # print("out",out1,out2)
-    # test_reader(config, device, logger)

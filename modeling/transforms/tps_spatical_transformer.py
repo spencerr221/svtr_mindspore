@@ -36,21 +36,15 @@ def compute_partial_repr(input_points, control_points):
             control_points, (1, M, 2))
     # original implementation, very slow
     # pairwise_dist = torch.sum(pairwise_diff ** 2, dim = 2) # square of distance
-    # print("pairwise_diff",type(pairwise_diff),pairwise_diff.dtype)
     pairwise_diff_square = pairwise_diff * pairwise_diff
     cast = ops.Cast()
     pairwise_diff_square=cast(pairwise_diff_square,mindspore.float32)
-    # print("pairwise_diff_square:",type(pairwise_diff_square),len(pairwise_diff_square),pairwise_diff_square.dtype)
     test_1=pairwise_diff_square[:, :, 0]
     test_2=pairwise_diff_square[:, :,1]
-    # print("test_1",test_1.shape,test_1.dtype)
     pairwise_dist = pairwise_diff_square[:, :, 0] + pairwise_diff_square[:, :,1]
-    # print("pairwise_dist",pairwise_dist)
     repr_matrix = 0.5 * pairwise_dist * ms_np.log(pairwise_dist)
-    # print("repr_matrix:",repr_matrix)
     # fix numerical error for 0 * log(0), substitute all nan with 0
     mask = np.array(repr_matrix != repr_matrix)
-    # print(mask.shape,mask)
     # repr_matrix[mask] = 0
     return repr_matrix
 
@@ -81,7 +75,6 @@ class TPSSpatialTransformer(nn.Cell):
         N = num_control_points
 
         # create padded kernel matrix
-        # print("test here:",N+3)
         forward_kernel = np.zeros((N + 3, N + 3))
 
         target_control_partial_repr = compute_partial_repr(
@@ -96,7 +89,6 @@ class TPSSpatialTransformer(nn.Cell):
             target_control_points, input_perm=(1, 0))
         # compute inverse matrix
         forward_kernel=Tensor(forward_kernel)
-        print("forward_kernel:",forward_kernel.shape)
 
         inverse_kernel = matrix_inverse(forward_kernel)
 
@@ -125,7 +117,6 @@ class TPSSpatialTransformer(nn.Cell):
         width_others = ops.cast(width_others, mindspore.int16)
         Y = Y / (height_others - 1)
         X = X / (width_others - 1)
-        print("xxxxxxxxxxxxxxxx",type(X))
         target_coordinate = ops.concat(
             [X, Y], axis=1)  # convert from (y, x) to (x, y)
         target_coordinate_partial_repr = compute_partial_repr(
@@ -136,7 +127,6 @@ class TPSSpatialTransformer(nn.Cell):
                 ops.cast(target_coordinate,mindspore.float32)
             ],
             axis=1)
-        print("---------------test----------here------")
 
         # register precomputed matrices
         self.inverse_kernel = inverse_kernel

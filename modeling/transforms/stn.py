@@ -100,7 +100,6 @@ class STN(nn.Cell):
             ctrl_points = -np.log(1. / ctrl_points - 1.)
         ctrl_points = Tensor(ctrl_points)
         shape=ctrl_points.shape[0] * ctrl_points.shape[1]
-        print("ctrl_points,shape",ctrl_points.shape,shape)
         fc2_bias = np.reshape(
             ctrl_points, [ctrl_points.shape[0] * ctrl_points.shape[1]])
         return fc2_bias

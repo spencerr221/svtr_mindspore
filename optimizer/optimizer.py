@@ -39,15 +39,6 @@ class AdamW(object):
             param for param in model.trainable_params()
         ]
 
-        # self.no_weight_decay_param_name_list = [
-        #     p.name for n, p in model.named_parameters()
-        #     if any(nd in n for nd in self.no_weight_decay_name_list)
-        # ]
-        #
-        # if self.one_dim_param_no_weight_decay:
-        #     self.no_weight_decay_param_name_list += [
-        #         p.name for n, p in model.named_parameters() if len(p.shape) == 1
-        #     ]
 
         opt = nn.AdamWeightDecay(
             params=parameters,
