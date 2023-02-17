@@ -22,7 +22,7 @@ from svtr_mindspore.utils import load_config
 from svtr_mindspore.utils import EvalCallback
 
 import mindspore as ms
-from mindspore import FixedLossScaleManager, Model, CheckpointConfig, ModelCheckpoint
+from mindspore import FixedLossScaleManager, Model, CheckpointConfig, ModelCheckpoint, DynamicLossScaleManager
 from mindspore.train.callback import TimeMonitor, LossMonitor
 ms.set_seed(0)
 
@@ -133,7 +133,7 @@ def train(args):
 
     network = with_loss_cell(model, loss_class)
 
-    # build optim
+    # build optim with lr
     optimizer, lr_scheduler = build_optimizer(
         config['Optimizer'],
         epochs=config['Global']['epoch_num'],
@@ -147,10 +147,13 @@ def train(args):
     if config["Global"].get("use_ema", True):
         print("under_developing")
     else:
-# TODO: dynamic loss scale
-        loss_scale_manager = FixedLossScaleManager(loss_scale=config["Global"]["loss_scale"],drop_overflow_update=False)
-        # model=Model(network=model,loss_fn=loss_class,optimizer=optimizer,metrics={'RecMetric':eval_class},amp_level=config["Global"]["amp_level"],loss_scale_manager=loss_scale_manager)
-        model = Model(network=network, optimizer=optimizer, amp_level=config["Global"]["amp_level"], loss_scale_manager=loss_scale_manager)
+        if config["Optimizer"]["dynamic_loss_scale"]:
+            loss_scale_manager = DynamicLossScaleManager(init_loss_scale=config["Global"]["loss_scale"], scale_factor=2,
+                                                         scale_window=1000)
+        else:
+            loss_scale_manager = FixedLossScaleManager(loss_scale=config["Global"]["loss_scale"], drop_overflow_update=False)
+            # model=Model(network=model,loss_fn=loss_class,optimizer=optimizer,metrics={'RecMetric':eval_class},amp_level=config["Global"]["amp_level"],loss_scale_manager=loss_scale_manager)
+        model = Model(network=network, optimizer=optimizer, amp_level=config["Global"]["amp_level"], loss_scale_manager= None)
 
 
 # callbacks:   #TODO:eval and infer
@@ -163,7 +166,7 @@ def train(args):
         # eval_model = Model(network=network.set_train(False),  optimizer=optimizer, loss_fn=loss_class, metrics={'SVTRMetric': eval_class}, amp_level=config["Global"]["amp_level"], loss_scale_manager=loss_scale_manager)
         eval_model = Model(network=network.set_train(False), optimizer=optimizer, loss_fn=loss_class,
                            metrics={'SVTRMetric': eval_class}, amp_level=config["Global"]["amp_level"],
-                           loss_scale_manager=loss_scale_manager)
+                           loss_scale_manager=None)
         eval_param_dict = {
             "model": eval_model,
             "dataset": valid_dataloader,
