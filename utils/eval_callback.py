@@ -35,7 +35,7 @@ class EvalCallback(Callback):
         super(EvalCallback, self).__init__()
         self.eval_param_dict = eval_param_dict
         self.eval_function = eval_function
-        self.rank_id = rank_id
+        self.rank_id = rank_id if rank_id is not None else 0
         self.eval_start_epoch = eval_start_epoch
         if interval < 1:
             raise ValueError("interval should >= 1.")

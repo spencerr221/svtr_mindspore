@@ -87,9 +87,9 @@ class Mlp(nn.Cell):
         super(Mlp, self).__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
-        self.fc1 = nn.Dense(in_features, hidden_features)
+        self.fc1 = nn.Dense(in_features, hidden_features, weight_init='xavier_uniform')
         self.act = act_layer
-        self.fc2 = nn.Dense(hidden_features, out_features)
+        self.fc2 = nn.Dense(hidden_features, out_features, weight_init='xavier_uniform')
         self.drop = nn.Dropout(1-drop)
 
     def construct(self, x: Tensor) -> Tensor:
@@ -146,9 +146,9 @@ class Attention(nn.Cell):
         head_dim = dim // num_heads
         self.scale = qk_scale or head_dim**-0.5
 
-        self.qkv = nn.Dense(dim, dim * 3, bias_init=qkv_bias)   #bias_attr=bias_init?
+        self.qkv = nn.Dense(dim, dim * 3, weight_init='xavier_uniform', bias_init=qkv_bias)   #bias_attr=bias_init?
         self.attn_drop = nn.Dropout(1-attn_drop)
-        self.proj = nn.Dense(dim, dim)
+        self.proj = nn.Dense(dim, dim, weight_init='xavier_uniform')
         self.proj_drop = nn.Dropout(1-proj_drop)
         self.HW = HW
         if HW is not None:
@@ -288,14 +288,16 @@ class PatchEmbed(nn.Cell):
                         kernel_size=3,
                         stride=2,
                         padding=1,
-                        act=gelu),   # bias_atrr: none in paddle means zeros
+                        act=gelu,
+                        bias_attr=True),   # bias_atrr: none in paddle means zeros
                     ConvBNLayer(
                         in_channels=embed_dim // 2,
                         out_channels=embed_dim,
                         kernel_size=3,
                         stride=2,
                         padding=1,
-                        act=gelu)])
+                        act=gelu,
+                        bias_attr=True)])
             if sub_num == 3:
                 self.proj = nn.SequentialCell([
                     ConvBNLayer(
@@ -304,24 +306,28 @@ class PatchEmbed(nn.Cell):
                         kernel_size=3,
                         stride=2,
                         padding=1,
-                        act=gelu),
+                        act=gelu,
+                        bias_attr=True),
                     ConvBNLayer(
                         in_channels=embed_dim // 4,
                         out_channels=embed_dim // 2,
                         kernel_size=3,
                         stride=2,
                         padding=1,
-                        act=gelu),
+                        act=gelu,
+                        bias_attr=True),
                     ConvBNLayer(
                         in_channels=embed_dim // 2,
                         out_channels=embed_dim,
                         kernel_size=3,
                         stride=2,
                         padding=1,
-                        act=gelu)])
+                        act=gelu,
+                        bias_attr=True)])
         elif mode == 'linear':
             self.proj = nn.Conv2d(
-                1, embed_dim, kernel_size=patch_size, stride=patch_size)
+                1, embed_dim, kernel_size=patch_size, stride=patch_size,
+                weight_init='xavier_uniform', has_bias=True)
             self.num_patches = img_size[0] // patch_size[0] * img_size[
                 1] // patch_size[1]
 
@@ -360,7 +366,8 @@ class SubSample(nn.Cell):
                 stride=stride,
                 padding=1,
                 pad_mode="pad",
-                weight_init=HeUniform()
+                weight_init=HeUniform(),
+                has_bias=True
                 # weight_init=3
             )
         self.norm = eval(sub_norm)([out_channels])
@@ -436,8 +443,8 @@ class SVTRNet(nn.Cell):
 
         self.pos_drop = nn.Dropout(keep_prob=1-drop_rate)
         Block_unit = eval(block_unit)
-        start=Tensor(0,mindspore.float32)
-        stop=Tensor(drop_path_rate,mindspore.float32)
+        start=Tensor(0, mindspore.float32)
+        stop=Tensor(drop_path_rate, mindspore.float32)
         dpr = ops.linspace(start, stop, num=sum(depth))
         self.blocks1 = nn.CellList([
             Block_unit(
@@ -523,6 +530,7 @@ class SVTRNet(nn.Cell):
                 kernel_size=1,
                 stride=1,
                 padding=0,
+                weight_init='xavier_uniform',
                 has_bias=False)
             self.hardswish = nn.HSwish()
             self.dropout = nn.Dropout(keep_prob=1-last_drop)   #TODO: no mode

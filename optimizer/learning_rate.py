@@ -58,6 +58,9 @@ from mindspore import nn as nn
 from mindspore.nn.learning_rate_schedule import LearningRateSchedule
 import math
 import mindspore as ms
+import mindspore.ops as ops
+
+from mindspore import Tensor
 
 def cosine_annealing_lr(t_max, eta_min, *, eta_max, steps_per_epoch, epochs):
     ## eta_max -> learning_rate
@@ -88,9 +91,9 @@ class WarmupCosineDecayLR(LearningRateSchedule):
         if self.warmup_steps > 0:
             self.warmup_lr = nn.WarmUpLR(max_lr, self.warmup_steps)
         self.cosine_decay_lr = nn.CosineDecayLR(min_lr, max_lr, self.decay_steps)
+        self.zero = Tensor(0.0, dtype=ms.float32)
 
-    def construct(self, global_step):
-
+    def step_lr(self, global_step):
         if self.warmup_steps > 0:
             if global_step > self.warmup_steps:
                 lr = self.cosine_decay_lr(global_step - self.warmup_steps)
@@ -98,6 +101,12 @@ class WarmupCosineDecayLR(LearningRateSchedule):
                 lr = self.warmup_lr(global_step)
         else:
             lr = self.cosine_decay_lr(global_step)
+
+        lr = ops.clip_by_value(lr, clip_value_min=self.zero)
+        return lr
+
+    def construct(self, global_step):
+        lr = self.step_lr(global_step)
         return lr
 
 class LinearStepDecayLR(LearningRateSchedule):
@@ -124,9 +133,12 @@ class LinearStepDecayLR(LearningRateSchedule):
             steps_per_epoch=self.steps_per_epoch,
             epochs=self.epochs
         )
-        if self.warmup_steps > 0 and global_step < self.warmup_steps:
-            # lr = self.start_lr + (self.learning_rate - self.start_lr) * global_step / self.warmup_steps + self.start_lr
-            lr = self.warmup_lr(global_step)
+        if self.warmup_steps > 0:
+            if global_step > self.warmup_steps:
+                # lr = self.start_lr + (self.learning_rate - self.start_lr) * global_step / self.warmup_steps + self.start_lr
+                lr = learning_rate
+            else:
+                lr = self.warmup_lr(global_step)
         else:
-            lr = learning_rate
+            print("warmup_steps not support 0")
         return lr

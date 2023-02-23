@@ -24,7 +24,8 @@ from svtr_mindspore.utils import EvalCallback
 import mindspore as ms
 from mindspore import FixedLossScaleManager, Model, CheckpointConfig, ModelCheckpoint, DynamicLossScaleManager
 from mindspore.train.callback import TimeMonitor, LossMonitor
-ms.set_seed(0)
+from mindspore import Profiler
+ms.set_seed(42)
 
 
 def apply_eval(eval_param):
@@ -65,6 +66,9 @@ def train(args):
 
     # build dataloader
     train_dataloader = build_dataloader(config, 'Train',num_shards=device_num)
+    # for data in train_dataloader:
+    #     print("DDDDDDDDDDDDD", data)
+    # exit(0)
 # TODO: eval
     if config['Eval']:
         valid_dataloader = build_dataloader(config, 'Eval')
@@ -125,20 +129,20 @@ def train(args):
 
         if config['PostProcess']['name'] == 'SARLabelDecode':  # for SAR model
             config['Loss']['ignore_index'] = char_num - 1
-    model = build_model(config['Architecture'])
+    model_no_loss = build_model(config['Architecture'])
 
 
     # build loss
     loss_class = build_loss(config['Loss'])
 
-    network = with_loss_cell(model, loss_class)
+    network = with_loss_cell(model_no_loss, loss_class)
 
     # build optim with lr
     optimizer, lr_scheduler = build_optimizer(
         config['Optimizer'],
         epochs=config['Global']['epoch_num'],
         step_each_epoch=train_dataloader.get_dataset_size(),
-        model=model)
+        model=model_no_loss)
 
 
     # build metric
@@ -151,9 +155,10 @@ def train(args):
             loss_scale_manager = DynamicLossScaleManager(init_loss_scale=config["Global"]["loss_scale"], scale_factor=2,
                                                          scale_window=1000)
         else:
+            print("using fixed loss scale")
             loss_scale_manager = FixedLossScaleManager(loss_scale=config["Global"]["loss_scale"], drop_overflow_update=False)
             # model=Model(network=model,loss_fn=loss_class,optimizer=optimizer,metrics={'RecMetric':eval_class},amp_level=config["Global"]["amp_level"],loss_scale_manager=loss_scale_manager)
-        model = Model(network=network, optimizer=optimizer, amp_level=config["Global"]["amp_level"], loss_scale_manager= None)
+        model = Model(network=network, optimizer=optimizer, amp_level=config["Global"]["amp_level"], loss_scale_manager= loss_scale_manager)
 
 
 # callbacks:   #TODO:eval and infer
@@ -164,7 +169,7 @@ def train(args):
 
     if valid_dataloader is not None and valid_dataloader.get_dataset_size() > 0:
         # eval_model = Model(network=network.set_train(False),  optimizer=optimizer, loss_fn=loss_class, metrics={'SVTRMetric': eval_class}, amp_level=config["Global"]["amp_level"], loss_scale_manager=loss_scale_manager)
-        eval_model = Model(network=network.set_train(False), optimizer=optimizer, loss_fn=loss_class,
+        eval_model = Model(network=model_no_loss.set_train(False), optimizer=optimizer,
                            metrics={'SVTRMetric': eval_class}, amp_level=config["Global"]["amp_level"],
                            loss_scale_manager=None)
         eval_param_dict = {
@@ -195,7 +200,11 @@ def train(args):
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     parser=argparse.ArgumentParser()
+
     parser.add_argument("--config_path",type=str,default="configs/rec_svtrnet.yaml",help="Config file path")
     args = parser.parse_args()
-    # ms.set_context(device_id=[0,1,2,3,4])
+    # profiler = Profiler()
+    ms.set_context(device_id=2)
     train(args)
+
+    # profiler.analyse()

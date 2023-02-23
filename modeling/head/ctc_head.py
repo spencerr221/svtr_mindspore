@@ -39,6 +39,7 @@ class CTCHead(nn.Cell):
             self.fc = nn.Dense(
                 in_channels,
                 out_channels,
+                weight_init=weight_attr,
                 bias_init=bias_attr)
         else:
             # weight_attr1, bias_attr1 = get_para_bias_attr(
@@ -47,6 +48,7 @@ class CTCHead(nn.Cell):
             self.fc1 = nn.Dense(
                 in_channels,
                 mid_channels,
+                weight_init=weight_attr1,
                 bias_init=bias_attr1)
 
             # weight_attr2, bias_attr2 = get_para_bias_attr(

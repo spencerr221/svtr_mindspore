@@ -1,6 +1,7 @@
 from __future__ import division
 from __future__ import print_function
 
+import mindspore
 import mindspore as ms
 from mindspore import nn
 from mindspore import Tensor,Parameter
@@ -8,26 +9,29 @@ from mindspore.common import dtype as mstype
 from mindspore import ops
 from mindspore.ops.operations import CTCLossV2
 # from mindspore.nn.loss import CTCLoss
-import mindspore.numpy as np
+import numpy as np
 from mindspore.nn.loss.loss import LossBase
 
 class CTCLoss(LossBase):
     def __init__(self, use_focal_loss=False, **kwargs):
         super(CTCLoss, self).__init__()
         # self.loss_func = nn.CTCLoss(blank=0, reduction='none')
-        self.loss_func = CTCLossV2(blank=0, reduction='none')
+        self.loss_func = CTCLossV2(blank=36, reduction='none')
         self.use_focal_loss = use_focal_loss
 
 
     def construct(self, predicts, batch):
-
         predicts = ops.log_softmax(predicts)
         if isinstance(predicts, (list, tuple)):
             predicts = predicts[-1]
         predicts = predicts.transpose((1, 0, 2))
+        # import pdb;pdb.set_trace()
         N, B, _ = predicts.shape
         preds_lengths = Tensor([N] * B, dtype=ms.int32)
-        label_lengths =ops.count_nonzero(batch, axis=(-1)).astype('int32')
+        # import pdb;pdb.set_trace()
+        # label_lengths = np.count_nonzero(batch != 36, axis=(-1)).astype('int32')
+        label_lengths = ops.count_nonzero((batch != 36) * 1, axis=(-1)).astype('int32')
+        # label_lengths = Tensor(label_lengths, mindspore.int32)
         labels = batch.astype("int64")
         predicts=predicts.astype("float32")
         # label_lengths = lens.astype('int32')

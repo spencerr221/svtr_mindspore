@@ -70,9 +70,25 @@ def create_scheduler(
 
     return lr_scheduler
 
+def init_group_params(params, weight_decay):
+    decay_params = []
+    no_decay_params = []
+
+    for param in params:
+        if 'beta' not in param.name and 'gamma' not in param.name and 'bias' not in param.name:
+            decay_params.append(param)
+        else:
+            no_decay_params.append(param)
+    return [
+        {'params': decay_params, 'weight_decay': weight_decay},
+        {'params': no_decay_params},
+        {'order_params': params}
+    ]
+
 
 def build_optimizer(config, epochs, step_each_epoch, model):
     from . import regularizer, optimizer
+    from .optimizer import AdamW
     config = copy.deepcopy(config)
     # step1 build lr
     lr = build_lr_scheduler(config.pop('lr'), epochs, step_each_epoch)
@@ -84,7 +100,7 @@ def build_optimizer(config, epochs, step_each_epoch, model):
         if not hasattr(regularizer, reg_name):
             reg_name += 'Decay'
         reg = getattr(regularizer, reg_name)(**reg_config)()
-    elif 'weight_decay' in config:
+    elif 'weight_decay' in config:     #0.05
         reg = config.pop('weight_decay')
     else:
         reg = None
@@ -99,9 +115,18 @@ def build_optimizer(config, epochs, step_each_epoch, model):
     #     grad_clip = paddle.nn.ClipGradByGlobalNorm(clip_norm=clip_norm)
     # else:
     #     grad_clip = None
-    grad_clip = None
-    optim = getattr(optimizer, optim_name)(learning_rate=lr,
-                                           weight_decay=reg,
-                                           grad_clip=grad_clip,
-                                           **config)
-    return optim(model), lr
+    #-------------------------------------------
+    #grad_clip = None
+    # optim = getattr(optimizer, optim_name)(learning_rate=lr,
+    #                                        weight_decay=reg,
+    #                                        grad_clip=grad_clip,
+    #                                        **config)
+
+    optimizer = AdamW(params=model.trainable_params(),
+                      learning_rate=lr,
+                      weight_decay=reg,
+                      # **opt_args)
+                      )
+
+    # return optim(model), lr
+    return optimizer, lr

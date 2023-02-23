@@ -73,13 +73,15 @@ class TPSSpatialTransformer(nn.Cell):
         target_control_points = build_output_control_points(num_control_points,
                                                             margins)
         N = num_control_points
-
         # create padded kernel matrix
         forward_kernel = np.zeros((N + 3, N + 3))
 
         target_control_partial_repr = compute_partial_repr(
             target_control_points, target_control_points)
         target_control_partial_repr = ops.cast(target_control_partial_repr,mindspore.float32)
+        target_control_partial_repr = target_control_partial_repr.asnumpy()
+        target_control_partial_repr[np.isnan(target_control_partial_repr)] = 0
+        target_control_partial_repr = Tensor(target_control_partial_repr, mindspore.float32)
         forward_kernel[:N, :N] = target_control_partial_repr
         forward_kernel[:N, -3] = 1
         forward_kernel[-3, :N] = 1
@@ -92,11 +94,11 @@ class TPSSpatialTransformer(nn.Cell):
 
         inverse_kernel = matrix_inverse(forward_kernel)
 
+        # import pdb; pdb.set_trace()
+
         # create target cordinate matrix
         HW = self.target_height * self.target_width
-        target_coordinate = list(
-            itertools.product(
-                range(self.target_height), range(self.target_width)))
+        target_coordinate = list(itertools.product(range(self.target_height), range(self.target_width)))
         target_coordinate = Tensor(target_coordinate)  # HW x 2
         Y, X = ops.split(target_coordinate, output_num=target_coordinate.shape[1], axis=1)
         #----------------for Ascend----------------
@@ -109,18 +111,16 @@ class TPSSpatialTransformer(nn.Cell):
         # Y=np.divide(Y,height_others)
         # X=np.divide(X,width_others)
 
-        Y=ops.cast(Y,mindspore.int16)
-        X = ops.cast(X, mindspore.int16)
-        height_others=self.target_height-1
-        width_others=self.target_width-1
-        height_others=ops.cast(height_others,mindspore.int16)
-        width_others = ops.cast(width_others, mindspore.int16)
-        Y = Y / (height_others - 1)
-        X = X / (width_others - 1)
-        target_coordinate = ops.concat(
-            [X, Y], axis=1)  # convert from (y, x) to (x, y)
-        target_coordinate_partial_repr = compute_partial_repr(
-            target_coordinate, target_control_points)
+        Y = ops.cast(Y, mindspore.float32)
+        X = ops.cast(X, mindspore.float32)
+        # height_others = self.target_height-1
+        # width_others = self.target_width-1
+        # height_others = ops.cast(height_others, mindspore.int16)
+        # width_others = ops.cast(width_others, mindspore.int16)
+        Y = Y / (self.target_height-1)
+        X = X / (self.target_width-1)
+        target_coordinate = ops.concat([X, Y], axis=1)  # convert from (y, x) to (x, y)
+        target_coordinate_partial_repr = compute_partial_repr(target_coordinate, target_control_points)
         target_coordinate_repr = ops.concat(
             [
                 target_coordinate_partial_repr, ops.ones((HW, 1), mindspore.float32),
@@ -146,13 +146,11 @@ class TPSSpatialTransformer(nn.Cell):
         mapping_matrix = ops.matmul(self.inverse_kernel, Y)
         mapping_matrix = ops.cast(mapping_matrix, mindspore.float16)
         source_coordinate = ops.matmul(self.target_coordinate_repr,mapping_matrix)   #float32 and float32
-
-        grid = ops.reshape(
-            source_coordinate,
-            (source_coordinate.shape[0], self.target_height, self.target_width, 2))           #TODO may not work
+        # import pdb;pdb.set_trace()
+        grid = ops.reshape(source_coordinate, (source_coordinate.shape[0], self.target_height, self.target_width, 2))           #TODO may not work
         grid = grid.clip(0,1)  # the source_control_points may be out of [0, 1].
         # the input to grid_sample is normalized [-1, 1], but what we get is [0, 1]
         grid = 2.0 * grid - 1.0
-        input = ops.cast(input,mindspore.float32)
+        input = ops.cast(input, mindspore.float32)
         output_maps = grid_sample(input, grid, canvas=None)
         return output_maps, source_coordinate

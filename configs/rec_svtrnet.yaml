@@ -1,5 +1,5 @@
 Global:
-  mode: 1  #Graph_mode=0,Pynative_mode=1
+  mode: 0  #Graph_mode=0,Pynative_mode=1
   enable_graph_kernel: False
   distributed: False
   amp_level: 'O0'
@@ -25,7 +25,7 @@ Global:
   infer_mode: False
   use_space_char: False
   save_res_path: ./output/rec/predicts_svtr_tiny.txt
-  loss_scale: 1.5
+  loss_scale: 512
   use_ema: False
   per_print_time: 100
   save_checkpoint_steps: 3
@@ -33,6 +33,7 @@ Global:
   eval_interval: 1
   eval_start_epoch: 1
   eval_all_saved_ckpts: False
+  blank: 36
 
 
 Optimizer:
@@ -46,11 +47,11 @@ Optimizer:
   dynamic_loss_scale: False
   lr:
 #    name: Cosine
-    name: linear_step_decay_lr
+    name: warmup_cosine_decay
     min_lr: 0.0
     warmup_epochs: 2
-    decay_epochs: 5
-    learning_rate: 0.0005
+    decay_epochs: 19
+    learning_rate: 0.0001
 
 Architecture:
   model_type: rec
@@ -97,7 +98,13 @@ Metric:
 Train:
   dataset:
     name: LMDBDataSet
-    data_dir: "/home/mindspore/lby_spencer/svtr_dataset/MJ_train"
+    data_dir: "/home/mindspore/lby_spencer/svtr_dataset/IC03_860"
+    label_dict: abcdefghijklmnopqrstuvwxyz0123456789
+#    transforms_new:
+    image_width: 256
+    image_height: 64
+    filter_by_dict: True
+    filter_length: 3
     transforms:
       - DecodeImage: # load image
           img_mode: BGR
@@ -112,7 +119,7 @@ Train:
           keep_keys: ['image', 'label', 'length'] # dataloader will return list in this order
   loader:
     shuffle: True
-    batch_size_per_card: 512
+    batch_size_per_card: 64
     drop_last: True
     num_workers: 2
   save_checkpoint: True
@@ -121,6 +128,17 @@ Eval:
   dataset:
     name: LMDBDataSet
     data_dir: "/home/mindspore/lby_spencer/svtr_dataset/validation"
+    label_dict: abcdefghijklmnopqrstuvwxyz0123456789
+#    transforms_new:
+#      - image_width: 256
+#      - image_height: 64
+#      - filter_by_dict: True
+#      - filter_length: 3
+    #    transforms_new:
+    image_width: 256
+    image_height: 64
+    filter_by_dict: True
+    filter_length: 3
     transforms:
       - DecodeImage: # load image
           img_mode: BGR
@@ -134,5 +152,5 @@ Eval:
   loader:
     shuffle: False
     drop_last: False
-    batch_size_per_card: 256
+    batch_size_per_card: 64
     num_workers: 2

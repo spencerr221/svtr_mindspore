@@ -14,7 +14,10 @@ import copy
 from typing import Optional
 import os
 from ..data.lmdb_dataset import LMDBDataSet
+import mindspore.dataset.vision as vc
+import mindspore.dataset.transforms as C
 from mindspore.dataset import GeneratorDataset, DistributedSampler
+import mindspore.common.dtype as mstype
 
 import mindspore.dataset as ds
 
@@ -56,6 +59,8 @@ def build_dataloader(
     else:
         use_shared_memory = True
 
+    dataset_config = config[mode]['dataset']
+
     # if mode == "Train":
     #     # Distribute data to multiple cards
     #     batch_sampler = DistributedSampler(num_shards, shard_id, shuffle=shuffle, num_samples=num_samples)   # TODO add params, num_shards=none
@@ -76,6 +81,22 @@ def build_dataloader(
                         num_parallel_workers=num_workers)
     dataset_generator = eval(module_name)(config, mode, seed)
     dataset = GeneratorDataset(dataset_generator,["image", "label"],**mindspore_kwargs)
-    dataset=dataset.batch(batch_size,drop_remainder=drop_last)
 
-    return dataset
+    image_trans = [
+        vc.Resize((dataset_config['image_height'],
+                   dataset_config['image_width'])),
+        vc.Normalize([127.5, 127.5, 127.5], std=[127.5, 127.5, 127.5]),
+        vc.HWC2CHW()
+    ]
+    label_trans = [
+        C.TypeCast(mstype.int32)
+    ]
+    data_generator = dataset.map(operations=image_trans, input_columns=[
+        "image"], num_parallel_workers=num_workers)
+    data_generator = data_generator.map(operations=label_trans, input_columns=[
+        "label"], num_parallel_workers=num_workers)
+    data_generator = data_generator.batch(batch_size, drop_remainder=drop_last)
+    # import pdb; pdb.set_trace()
+    # dataset = dataset.batch(batch_size,drop_remainder=drop_last)
+
+    return data_generator

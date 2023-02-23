@@ -41,6 +41,7 @@ def conv3x3_block(in_channels, out_channels, stride=1):
         pad_mode="pad",
         padding=1,
         weight_init=Normal(mean=0.0, sigma=w),
+        has_bias=True,
         bias_init='zeros')
     block = nn.SequentialCell(conv_layer, nn.BatchNorm2d(out_channels), nn.ReLU())
     return block
@@ -133,7 +134,9 @@ class STN_ON(nn.Cell):
     def construct(self, image):
         stn_input = ops.interpolate(
             image, sizes=tuple(self.tps_inputsize), mode="bilinear")
-        stn_img_feat, ctrl_points = self.stn_head(stn_input)
+        stn_img_feat, ctrl_points = self.stn_head(stn_input)   # check pass
         #TODO:
+
+        # import pdb;pdb.set_trace()
         x, _ = self.tps(image, ctrl_points)
         return x

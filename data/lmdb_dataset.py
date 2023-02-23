@@ -7,6 +7,7 @@ import six
 from PIL import Image
 
 from svtr_mindspore.data.imug import transform, create_operators
+from .common import normalize_text
 # from mindspore import dataset
 
 class LMDBDataSet():
@@ -30,6 +31,10 @@ class LMDBDataSet():
 
         ratio_list = dataset_config.get("ratio_list", [1.0])
         self.need_reset = True in [x < 1 for x in ratio_list]
+
+        self.max_text_length = global_config['max_text_length']
+        self.blank = global_config["blank"]
+        self.label_dict = dataset_config['label_dict']
 
     def load_hierarchical_lmdb_dataset(self, data_dir):
         lmdb_sets = {}
@@ -116,6 +121,8 @@ class LMDBDataSet():
         return imgbuf, label
 
     def __getitem__(self, idx):
+        # print("AAAAAAAAAAAAAaa", self.data_idx_order_list)
+        # print("BBBBBBBBBBBBBB", self.lmdb_sets)
         lmdb_idx, file_idx = self.data_idx_order_list[idx]
         lmdb_idx = int(lmdb_idx)
         file_idx = int(file_idx)
@@ -123,18 +130,39 @@ class LMDBDataSet():
                                                 file_idx)
         if sample_info is None:
             return self.__getitem__(np.random.randint(self.__len__()))
+        # print("CCCCCCCCCCCCCCCC", sample_info)
         img, label = sample_info
 
 
         data = {'image': img, 'label': label}
-        outs = transform(data, self.ops)
-        if outs is None:
-            return self.__getitem__(np.random.randint(self.__len__()))
-        #TODO: what is ext_data for?
+        # outs = transform(data, self.ops)
+        # # outs = data
+        # if outs is None:
+        #     return self.__getitem__(np.random.randint(self.__len__()))
+        # # #TODO: what is ext_data for?
+        # #
+        # return outs[0], outs[1]
+        label_str = normalize_text(label)
 
-        return outs[0], outs[1]
+        img = np.frombuffer(img, dtype='uint8')
+        img = cv2.imdecode(img, 1)
+        img = img[:, :, ::-1]
+
+        label = []
+        for c in label_str:
+            if c in self.label_dict:
+                label.append(self.label_dict.index(c))
+        label_length = len(label)
+        if label_length >= self.max_text_length:
+            label = label[:self.max_text_length]
+        else:
+            label.extend([int(self.blank)] * (self.max_text_length - len(label)))
+        label = np.array(label)
+
+        return img, label
 
     def __len__(self):
+        # return 200
         return self.data_idx_order_list.shape[0]
 
 # if __name__ == "__main__":
