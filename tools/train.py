@@ -32,7 +32,7 @@ def apply_eval(eval_param):
     evaluation_model = eval_param["model"]
     eval_ds = eval_param["dataset"]
     metrics_name = eval_param["metrics_name"]
-    res = evaluation_model.eval(eval_ds)
+    res = evaluation_model.eval(eval_ds, dataset_sink_mode=False)
     return res[metrics_name]
 
 def train(args):
@@ -169,15 +169,13 @@ def train(args):
 
     if valid_dataloader is not None and valid_dataloader.get_dataset_size() > 0:
         # eval_model = Model(network=network.set_train(False),  optimizer=optimizer, loss_fn=loss_class, metrics={'SVTRMetric': eval_class}, amp_level=config["Global"]["amp_level"], loss_scale_manager=loss_scale_manager)
-        eval_model = Model(network=model_no_loss.set_train(False), optimizer=optimizer,
-                           metrics={'SVTRMetric': eval_class}, amp_level=config["Global"]["amp_level"],
-                           loss_scale_manager=None)
+        eval_model = Model(network=model_no_loss.set_train(False), loss_fn=loss_class,
+                           metrics={'SVTRAccuracy': eval_class})
         eval_param_dict = {
             "model": eval_model,
             "dataset": valid_dataloader,
             "metrics_name": "SVTRAccuracy"
         }
-
         eval_callback = EvalCallback(apply_eval, eval_param_dict, rank_id, interval=config['Global']["eval_interval"],
                                      eval_start_epoch=config['Global']["eval_start_epoch"], save_best_ckpt=True,
                                      ckpt_directory=save_ckpt_path, best_ckpt_name="best_acc.ckpt",
@@ -199,7 +197,7 @@ def train(args):
 
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
-    parser=argparse.ArgumentParser()
+    parser = argparse.ArgumentParser()
 
     parser.add_argument("--config_path",type=str,default="configs/rec_svtrnet.yaml",help="Config file path")
     args = parser.parse_args()

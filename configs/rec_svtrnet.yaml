@@ -5,7 +5,7 @@ Global:
   amp_level: 'O0'
   device_target: GPU
   use_gpu: True
-  epoch_num: 20
+  epoch_num: 200
   log_smooth_window: 20
   print_batch_step: 10
   save_model_dir: "/home/mindspore/lby_spencer/svtr_mindspore/svtr_mindspore/output/rec/svtr"
@@ -49,8 +49,8 @@ Optimizer:
 #    name: Cosine
     name: warmup_cosine_decay
     min_lr: 0.0
-    warmup_epochs: 2
-    decay_epochs: 19
+    warmup_epochs: 0
+    decay_epochs: 190
     learning_rate: 0.0001
 
 Architecture:
@@ -98,7 +98,7 @@ Metric:
 Train:
   dataset:
     name: LMDBDataSet
-    data_dir: "/home/mindspore/lby_spencer/svtr_dataset/IC03_860"
+    data_dir: "/home/mindspore/lby_spencer/svtr_dataset/MJ_train"
     label_dict: abcdefghijklmnopqrstuvwxyz0123456789
 #    transforms_new:
     image_width: 256
