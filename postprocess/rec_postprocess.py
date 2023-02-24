@@ -115,6 +115,7 @@ class CTCLabelDecode(BaseRecLabelDecode):
             return text
 
         label = self.decode(label)
+        # import pdb;pdb.set_trace()
         return text, label
 
     def add_special_char(self, dict_character):

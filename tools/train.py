@@ -156,10 +156,10 @@ def train(args):
             loss_scale_manager = DynamicLossScaleManager(init_loss_scale=config["Global"]["loss_scale"], scale_factor=2,
                                                          scale_window=1000)
         else:
-            print("using fixed loss scale")
+            # print("using fixed loss scale")
             loss_scale_manager = FixedLossScaleManager(loss_scale=config["Global"]["loss_scale"], drop_overflow_update=False)
             # model=Model(network=model,loss_fn=loss_class,optimizer=optimizer,metrics={'RecMetric':eval_class},amp_level=config["Global"]["amp_level"],loss_scale_manager=loss_scale_manager)
-        model = Model(network=network, optimizer=optimizer, amp_level=config["Global"]["amp_level"], loss_scale_manager= loss_scale_manager)
+        model = Model(network=network, optimizer=optimizer, amp_level=config["Global"]["amp_level"], loss_scale_manager= None)
 
 
 # callbacks:   #TODO:eval and infer
