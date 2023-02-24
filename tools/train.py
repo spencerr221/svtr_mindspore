@@ -38,9 +38,9 @@ def apply_eval(eval_param):
 def train(args):
     # set up mindspore runing mode
     config_path = args.config_path
-    config=load_config(config_path)
-    mode=config['Global']['mode']
-    enable_graph_kernel=config['Global']['enable_graph_kernel']
+    config = load_config(config_path)
+    mode = config['Global']['mode']
+    enable_graph_kernel = config['Global']['enable_graph_kernel']
     ms.set_context(mode=mode)
     if mode == 0:
         ms.set_context(enable_graph_kernel=enable_graph_kernel)
@@ -58,6 +58,7 @@ def train(args):
 
         if "DEVICE_ID" in os.environ:
             ms.set_context(device_id=int(os.environ["DEVICE_ID"]))
+        print("rank_id,device_num", rank_id, device_num)
     else:
         device_num = None
         rank_id = None
@@ -146,7 +147,7 @@ def train(args):
 
 
     # build metric
-    eval_class = build_metric(config['Metric'],decoder=post_process_class)
+    eval_class = build_metric(config['Metric'], decoder=post_process_class)
 
     if config["Global"].get("use_ema", True):
         print("under_developing")

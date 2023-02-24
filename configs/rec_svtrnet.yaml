@@ -50,8 +50,8 @@ Optimizer:
     name: warmup_cosine_decay
     min_lr: 0.0
     warmup_epochs: 0
-    decay_epochs: 190
-    learning_rate: 0.0001
+    decay_epochs: 195
+    learning_rate: 0.0005
 
 Architecture:
   model_type: rec
@@ -86,7 +86,7 @@ Loss:
   name: CTCLoss
   max_sequence_length: 25
   max_label_length: 25
-  batch_size: 64
+  batch_size: 128
 
 PostProcess:
   name: CTCLabelDecode
@@ -98,7 +98,7 @@ Metric:
 Train:
   dataset:
     name: LMDBDataSet
-    data_dir: "/home/mindspore/lby_spencer/svtr_dataset/MJ_train"
+    data_dir: "/home/mindspore/lby_spencer/svtr_dataset/IC03_860"
     label_dict: abcdefghijklmnopqrstuvwxyz0123456789
 #    transforms_new:
     image_width: 256
@@ -119,7 +119,7 @@ Train:
           keep_keys: ['image', 'label', 'length'] # dataloader will return list in this order
   loader:
     shuffle: True
-    batch_size_per_card: 64
+    batch_size_per_card: 128
     drop_last: True
     num_workers: 2
   save_checkpoint: True
@@ -152,5 +152,5 @@ Eval:
   loader:
     shuffle: False
     drop_last: False
-    batch_size_per_card: 64
+    batch_size_per_card: 128
     num_workers: 2

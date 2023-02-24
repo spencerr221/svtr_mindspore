@@ -1,6 +1,7 @@
-import numpy as np
 import re
-from mindspore import Tensor
+import numpy as np
+import mindspore as ms
+
 
 class BaseRecLabelDecode(object):
     """ Convert between text-label and text-index """
@@ -12,7 +13,7 @@ class BaseRecLabelDecode(object):
         self.character_str = []
 
         if character_dict_path is None:
-            self.character_str = "0123456789abcdefghijklmnopqrstuvwxyz"
+            self.character_str = "abcdefghijklmnopqrstuvwxyz0123456789"
             dict_character = list(self.character_str)
         else:
             with open(character_dict_path, "rb") as fin:
@@ -51,22 +52,23 @@ class BaseRecLabelDecode(object):
     def add_special_char(self, dict_character):
         return dict_character
 
-    def decode(self, text_index, text_prob=None, is_remove_duplicate=False):
+    def decode(self, text_index, text_prob=None, is_remove_duplicate=False, return_prob=False):
         """ convert text-index into text-label. """
         result_list = []
         ignored_tokens = self.get_ignored_tokens()
-        batch_size = len(text_index)
+        batch_size = text_index.shape[0]
+        max_idx = len(self.character) -1
         for batch_idx in range(batch_size):
-            selection = np.ones(len(text_index[batch_idx]), dtype=bool)
+            selection = np.ones(text_index.shape[1], dtype=bool)
             if is_remove_duplicate:
-                selection[1:] = text_index[batch_idx][1:] != text_index[
-                    batch_idx][:-1]
+                selection[1:] = text_index[batch_idx][1:] != text_index[batch_idx][:-1]
             for ignored_token in ignored_tokens:
                 selection &= text_index[batch_idx] != ignored_token
 
             char_list = [
                 self.character[text_id]
                 for text_id in text_index[batch_idx][selection]
+                if text_id >=0 and text_id <= max_idx
             ]
             if text_prob is not None:
                 conf_list = text_prob[batch_idx][selection]
@@ -80,11 +82,15 @@ class BaseRecLabelDecode(object):
             if self.reverse:  # for arabic rec
                 text = self.pred_reverse(text)
 
-            result_list.append((text, np.mean(conf_list).tolist()))
-        return result_list
+            if return_prob:
+                result_list.append((text, np.mean(conf_list).tolist()))
 
-    def get_ignored_tokens(self):
-        return [0]  # for ctc blank
+            else:
+                result_list.append(text)
+        return result_list
+    #
+    # def get_ignored_tokens(self):
+    #     return [0]
 
 
 class CTCLabelDecode(BaseRecLabelDecode):
@@ -98,17 +104,24 @@ class CTCLabelDecode(BaseRecLabelDecode):
     def __call__(self, preds, label=None, *args, **kwargs):
         if isinstance(preds, tuple) or isinstance(preds, list):
             preds = preds[-1]
-        if isinstance(preds, Tensor):
-            preds = preds.numpy()
+        if isinstance(preds, ms.Tensor):
+            preds = preds.asnumpy()
         preds_idx = preds.argmax(axis=2)
         preds_prob = preds.max(axis=2)
+
         text = self.decode(preds_idx, preds_prob, is_remove_duplicate=True)
+
         if label is None:
             return text
+
         label = self.decode(label)
         return text, label
 
     def add_special_char(self, dict_character):
-        dict_character = ['blank'] + dict_character
+        dict_character = dict_character + ['blank']
         return dict_character
+
+    def get_ignored_tokens(self):
+        return [36]
+        # return [len(self.character) - 1]
 
