@@ -110,9 +110,9 @@ class SVTRAccuracy(nn.Metric):
         if len(inputs) != 2:
             raise ValueError(
                 'Accuracy need 2 inputs (y_pred, y), but got {}'.format(len(inputs)))
-
+        # import pdb;pdb.set_trace()
         y_pred = self._convert_data(inputs[0])
-        y_pred = np.transpose(y_pred, (1, 0, 2))
+        # y_pred = np.transpose(y_pred, (1, 0, 2))
 
         if isinstance(inputs[1], list) and isinstance(inputs[1][0], str):
             str_pred = self.decoder(y_pred)

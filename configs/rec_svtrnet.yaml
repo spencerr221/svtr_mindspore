@@ -14,7 +14,7 @@ Global:
   eval_batch_step: [0, 2000]
   cal_metric_during_train: True
   pretrained_model:
-  checkpoints:
+  checkpoints: "/home/mindspore/lby_spencer/svtr_mindspore/svtr_mindspore/output/rec/svtr/ckpt/best_acc.ckpt"
   save_inference_dir:
   use_visualdl: False
   infer_img: doc/imgs_words_en/word_10.png
@@ -127,7 +127,7 @@ Train:
 Eval:
   dataset:
     name: LMDBDataSet
-    data_dir: "/home/mindspore/lby_spencer/svtr_dataset/validation"
+    data_dir: "/home/mindspore/lby_spencer/svtr_dataset/evaluation"
     label_dict: abcdefghijklmnopqrstuvwxyz0123456789
 #    transforms_new:
 #      - image_width: 256

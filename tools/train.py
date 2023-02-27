@@ -169,6 +169,7 @@ def train(args):
         save_ckpt_path = os.path.join(config["Global"]["save_model_dir"],'ckpt')
 
     if valid_dataloader is not None and valid_dataloader.get_dataset_size() > 0:
+        import pdb;
         # eval_model = Model(network=network.set_train(False),  optimizer=optimizer, loss_fn=loss_class, metrics={'SVTRMetric': eval_class}, amp_level=config["Global"]["amp_level"], loss_scale_manager=loss_scale_manager)
         eval_model = Model(network=model_no_loss.set_train(False), loss_fn=loss_class,
                            metrics={'SVTRAccuracy': eval_class})
