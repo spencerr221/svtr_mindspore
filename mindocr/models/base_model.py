@@ -1,5 +1,7 @@
 from addict import Dict
 from mindspore import nn
+
+from .transform import build_transform
 from .backbones import build_backbone
 from .necks import build_neck
 from .heads import build_head
@@ -14,10 +16,22 @@ class BaseModel(nn.Cell):
         """
         super(BaseModel, self).__init__()
 
-        config = Dict(config)  
-        backbone_name = config.backbone.pop('name')
-        self.backbone = build_backbone(backbone_name, **config.backbone)
+        config = Dict(config)
+        in_channels = config.get('in_channels', 3)
 
+        if 'transform' not in config or config['transform'] is None:
+            self.use_transform = False
+        else:
+            self.use_transform = True
+            config['transform']['in_channels'] = in_channels
+            trans_name = config.transform.pop('name')
+            self.transform = build_transform(trans_name, **config.trans_name)
+            assert hasattr(self.transform, 'out_channels'), f'Transforms are required to provide out_channels attribute, but not found in {trans_name}'
+            in_channels = self.transform.out_channels
+
+        backbone_name = config.backbone.pop('name')
+        config['backbone']['in_channels'] = in_channels
+        self.backbone = build_backbone(backbone_name, **config.backbone)
         assert hasattr(self.backbone, 'out_channels'), f'Backbones are required to provide out_channels attribute, but not found in {backbone_name}'
 
         if 'neck' not in config or config.neck is None:
@@ -36,7 +50,11 @@ class BaseModel(nn.Cell):
 
     def construct(self, x):
         # TODO: return bout, hout for debugging, using a dict.
-        bout = self.backbone(x)
+        if self.use_transform:
+            tout = self.transform(x)
+        else:
+            tout = x
+        bout = self.backbone(tout)
 
         nout = self.neck(bout)
 
