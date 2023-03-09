@@ -6,7 +6,7 @@ from mindspore.common import dtype as mstype
 from mindspore import ops
 from mindspore.common.initializer import initializer, Constant
 
-__all__ = ['RNNEncoder']
+__all__ = ['RNNEncoder', 'Im2Seq']
 
 # TODO: check mindspore nn LSTM diff in performance and precision from paddle/pytorch
 # TODO: what is the initialization method by default?
@@ -61,6 +61,20 @@ class RNNEncoder(nn.Cell):
             print('using self.hx')
             x, hx_n = self.seq_encoder(x, self.hx) # the results are the same
 
+        return x
+
+class Im2Seq(nn.Cell):
+    def __init__(self, in_channels, hidden_size=48):
+        super().__init__()
+        self.out_channels = in_channels
+
+
+    def construct(self, features):
+        x = features[0]
+        B, C, H, W = x.shape
+        assert H == 1
+        x = ops.squeeze(x, axis=2) # [N, C, W]
+        x = ops.transpose(x, (2, 0, 1)) # [W, N, C]
         return x
 
 #TODO: check correctness, this structure is different from paddle

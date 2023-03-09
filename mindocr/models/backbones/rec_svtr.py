@@ -602,7 +602,7 @@ class SVTRNet(nn.Cell):
             x = self.dropout(x)
         # if self.use_lenhead:     #TODO: for graph mode
         #     return x,len_x
-        return x
+        return [x]
     
 @register_backbone
 def rec_svtr(pretrained: bool = True, **kwargs):

@@ -1,6 +1,6 @@
 system:
   mode: 0 # 0 for graph mode, 1 for pynative mode in MindSpore
-  distribute: False 
+  distribute: True
   amp_level: 'O0'
   seed: 42
   val_while_train: True
@@ -9,7 +9,7 @@ system:
 common:
   character_dict_path: &character_dict_path  #mindocr/utils/dict/en_dict.txt
   num_classes: &num_classes 37 # num_chars_in_dict+1,  TODO: retreive it from dict or check correctness
-  max_text_len: &max_text_len 25
+  max_text_len: &max_text_len 24
   infer_mode: &infer_mode False
   use_space_char: &use_space_char False
   batch_size: &batch_size 256
@@ -37,8 +37,7 @@ model:
     last_stage: True
     prenorm: False
   neck:
-    name: SequenceEncoder
-    encoder_type: reshape
+    name: Im2Seq
   head:
     name: CTCHead 
     out_channels: *num_classes
@@ -47,10 +46,16 @@ postprocess:
   name: RecCTCLabelDecode
   character_dict_path: *character_dict_path
   use_space_char: *use_space_char
+  
+metric:
+  name: RecMetric
+  main_indicator: acc
+  character_dict_path: *character_dict_path
+  ignore_space: True 
 
 loss:
   name: CTCLoss 
-  pred_seq_len: 26 # TODO: retrieve from the network output shape.
+  pred_seq_len: 25 # TODO: retrieve from the network output shape.
   max_label_len: *max_text_len  # this value should be smaller than pre_seq_len
   batch_size: *batch_size
   
