@@ -1,10 +1,10 @@
 system:
-  mode: 0 # 0 for graph mode, 1 for pynative mode in MindSpore
-  distribute: True
+  mode: 1 # 0 for graph mode, 1 for pynative mode in MindSpore
+  distribute: False
   amp_level: 'O0'
   seed: 42
   val_while_train: True
-  ckpt_save_dir: "/home/mindspore/lby_spencer/svtr_mindspore/svtr_mindspore/output/rec/svtr"
+  ckpt_save_dir: '/home/mindspore/lby_spencer/svtr_mindspore/svtr_mindspore/output/rec/svtr'
 
 common:
   character_dict_path: &character_dict_path  #mindocr/utils/dict/en_dict.txt
