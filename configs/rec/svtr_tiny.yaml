@@ -1,10 +1,10 @@
 system:
-  mode: 1 # 0 for graph mode, 1 for pynative mode in MindSpore
-  distribute: False
+  mode: 0 # 0 for graph mode, 1 for pynative mode in MindSpore
+  distribute: True
   amp_level: 'O0'
   seed: 42
   val_while_train: True
-  ckpt_save_dir: '/home/mindspore/lby_spencer/svtr_mindspore/svtr_mindspore/output/rec/svtr'
+  ckpt_save_dir: '/home/mindspore/lby_spencer/svtr_mindspore/svtr_mindspore/output/rec/1503versionr'
 
 common:
   character_dict_path: &character_dict_path  #mindocr/utils/dict/en_dict.txt
@@ -61,11 +61,11 @@ loss:
   
 scheduler: 
   scheduler: warmup_cosine_decay
-  min_lr: 0.000001
-  lr: 0.0005
-  num_epochs: 20
+  min_lr: 0.0000001
+  lr: 0.0000625
+  num_epochs: 21
   warmup_epochs: 2
-  decay_epochs: 18
+  decay_epochs: 19
   
 optimizer:
   opt: adamw
@@ -79,7 +79,7 @@ train:
   dataset_sink_mode: False
   dataset:
     type: LMDBDataset
-    data_dir: /home/mindspore/lby_spencer/svtr_dataset/training/MJ
+    data_dir: /home/mindspore/lby_spencer/svtr_dataset/training
     # label_files: /data/ocr_datasets/ic15/word_recognition/rec_gt_train.txt
     sample_ratios: [1.0]
     shuffle: True
@@ -92,10 +92,10 @@ train:
           character_dict_path: *character_dict_path
           use_space_char: *use_space_char
       - RecResizeImg: # different from paddle (paddle converts image from HWC to CHW and rescale to [-1, 1] after resize.
-          image_shape: [32, 100] # H, W
+          image_shape: [64,256]
           infer_mode: *infer_mode
           character_dict_path: *character_dict_path
-          padding: True # aspect ratio will be preserved if true.
+          padding: False
       - NormalizeImage:  # different from paddle (paddle wrongly normalize BGR image with RGB mean/std from ImageNet for det, and simple rescale to [-1, 1] in rec.
           bgr_to_rgb: True
           is_hwc: True
@@ -112,13 +112,14 @@ train:
       batch_size: *batch_size
       drop_remainder: True
       max_rowsize: 12
-      num_workers: 8
+      num_workers: 4
 
 eval:
+#  ckpt_load_path: /home/mindspore/lby_spencer/svtr_mindspore/svtr_mindspore/output/rec/mindocr/best.ckpt
   dataset_sink_mode: False
   dataset:
     type: LMDBDataset
-    data_dir: /home/mindspore/lby_spencer/svtr_dataset/training/MJ
+    data_dir: /home/mindspore/lby_spencer/svtr_dataset/validation
     # label_files: /data/ocr_datasets/ic15/word_recognition/rec_gt_train.txt
     sample_ratios: [1.0]
     shuffle: False
@@ -131,10 +132,10 @@ eval:
           character_dict_path: *character_dict_path
           use_space_char: *use_space_char
       - RecResizeImg: # different from paddle (paddle converts image from HWC to CHW and rescale to [-1, 1] after resize.
-          image_shape: [32, 100] # H, W
+          image_shape: [64,256]
           infer_mode: *infer_mode
           character_dict_path: *character_dict_path
-          padding: True # aspect ratio will be preserved if true.
+          padding: False
       - NormalizeImage:  # different from paddle (paddle wrongly normalize BGR image with RGB mean/std from ImageNet for det, and simple rescale to [-1, 1] in rec.
           bgr_to_rgb: True
           is_hwc: True
@@ -147,7 +148,7 @@ eval:
 
   loader:
       shuffle: False # TODO: tbc
-      batch_size: 64
+      batch_size: 256
       drop_remainder: True
       max_rowsize: 12
-      num_workers: 8
+      num_workers: 4

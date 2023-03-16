@@ -89,9 +89,9 @@ class Mlp(nn.Cell):
         super(Mlp, self).__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
-        self.fc1 = nn.Dense(in_features, hidden_features, weight_init='xavier_uniform')
+        self.fc1 = nn.Dense(in_features, hidden_features, weight_init='zeros')
         self.act = act_layer
-        self.fc2 = nn.Dense(hidden_features, out_features, weight_init='xavier_uniform')
+        self.fc2 = nn.Dense(hidden_features, out_features, weight_init='zeros')
         self.drop = nn.Dropout(1-drop)
 
     def construct(self, x: Tensor) -> Tensor:
@@ -148,9 +148,9 @@ class Attention(nn.Cell):
         head_dim = dim // num_heads
         self.scale = qk_scale or head_dim**-0.5
 
-        self.qkv = nn.Dense(dim, dim * 3, weight_init='xavier_uniform', bias_init=qkv_bias)   #bias_attr=bias_init?
+        self.qkv = nn.Dense(dim, dim * 3, weight_init='zeros', bias_init=qkv_bias)   #bias_attr=bias_init?
         self.attn_drop = nn.Dropout(1-attn_drop)
-        self.proj = nn.Dense(dim, dim, weight_init='xavier_uniform')
+        self.proj = nn.Dense(dim, dim, weight_init='zeros')
         self.proj_drop = nn.Dropout(1-proj_drop)
         self.HW = HW
         if HW is not None:
