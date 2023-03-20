@@ -1,0 +1,191 @@
+common:
+  batch_size: 64
+  character_dict_path: null
+  infer_mode: false
+  max_text_len: 24
+  num_classes: 37
+  use_space_char: false
+eval:
+  dataset:
+    data_dir: /data1/lby_spencer/svtr_dataset/validation
+    num_keys_to_net: 1
+    output_keys:
+    - image
+    - text_padded
+    - text_length
+    sample_ratios:
+    - 1.0
+    shuffle: false
+    transform_pipeline:
+    - DecodeImage:
+        img_mode: BGR
+        to_float32: false
+    - RecCTCLabelEncode:
+        character_dict_path: null
+        max_text_len: 24
+        use_space_char: false
+    - RecResizeImg:
+        character_dict_path: null
+        image_shape:
+        - 64
+        - 256
+        infer_mode: false
+        padding: false
+    - NormalizeImage:
+        bgr_to_rgb: true
+        is_hwc: true
+        mean:
+        - 127.0
+        - 127.0
+        - 127.0
+        std:
+        - 127.0
+        - 127.0
+        - 127.0
+    - ToCHWImage: null
+  dataset_sink_mode: false
+  loader:
+    batch_size: 256
+    drop_remainder: true
+    max_rowsize: 12
+    num_workers: 4
+    shuffle: false
+loss:
+  batch_size: 64
+  max_label_len: 24
+  pred_seq_len: 25
+metric:
+  character_dict_path: null
+  ignore_space: true
+  main_indicator: acc
+model:
+  backbone:
+    depth:
+    - 3
+    - 6
+    - 3
+    embed_dim:
+    - 64
+    - 128
+    - 256
+    img_size:
+    - 32
+    - 100
+    last_stage: true
+    local_mixer:
+    - - 7
+      - 11
+    - - 7
+      - 11
+    - - 7
+      - 11
+    mixer:
+    - Local
+    - Local
+    - Local
+    - Local
+    - Local
+    - Local
+    - Global
+    - Global
+    - Global
+    - Global
+    - Global
+    - Global
+    name: SVTRNet
+    num_heads:
+    - 2
+    - 4
+    - 8
+    out_channels: 192
+    out_char_num: 25
+    patch_merging: Conv
+    prenorm: false
+  head:
+    name: CTCHead
+    out_channels: 37
+  neck:
+    name: Im2Seq
+  transform:
+    name: STN_ON
+    num_control_points: 20
+    stn_activation: none
+    tps_inputsize:
+    - 32
+    - 64
+    tps_margins:
+    - 0.05
+    - 0.05
+    tps_outputsize:
+    - 32
+    - 100
+  type: rec
+optimizer:
+  filter_bias_and_bn: true
+  loss_scale: 1.0
+  momentum: 0.9
+  opt: adamw
+  weight_decay: 0.05
+postprocess:
+  character_dict_path: null
+  use_space_char: false
+scheduler:
+  decay_epochs: 18
+  lr: 0.0005
+  min_lr: 1.0e-07
+  num_epochs: 20
+  scheduler: warmup_cosine_decay
+  warmup_epochs: 2
+system:
+  amp_level: O0
+  ckpt_save_dir: output/rec/1903vrsion
+  distribute: false
+  mode: 1
+  seed: 42
+  val_while_train: true
+train:
+  dataset:
+    data_dir: /data1/lby_spencer/svtr_dataset/validation
+    num_keys_to_net: 1
+    output_keys:
+    - image
+    - text_seq
+    sample_ratios:
+    - 1.0
+    shuffle: true
+    transform_pipeline:
+    - DecodeImage:
+        img_mode: BGR
+        to_float32: false
+    - SVTRRecAug:
+        aug_type: 0
+    - RecCTCLabelEncode:
+        character_dict_path: null
+        max_text_len: 24
+        use_space_char: false
+    - RecResizeImg:
+        character_dict_path: null
+        image_shape:
+        - 64
+        - 256
+        infer_mode: false
+        padding: false
+    - NormalizeImage:
+        bgr_to_rgb: true
+        is_hwc: true
+        mean:
+        - 127.0
+        - 127.0
+        - 127.0
+        std:
+        - 127.0
+        - 127.0
+        - 127.0
+    - ToCHWImage: null
+  dataset_sink_mode: false
+  loader:
+    batch_size: 64
+    drop_remainder: true
+    max_rowsize: 12
+    num_workers: 4
+    shuffle: true

@@ -59,7 +59,6 @@ class LMDBDataset():
         sample_ratio = sample_ratios[0] if isinstance(sample_ratios, list) else sample_ratios
         self.lmdb_sets = self.load_hierarchical_lmdb_dataset(data_dir)
         self.data_idx_order_list = self.dataset_traversal(sample_ratio, shuffle)
-        
         # create transform
         if transform_pipeline is not None:
             self.transforms = create_transforms(transform_pipeline) #, global_config=global_config)

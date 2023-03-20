@@ -1,10 +1,10 @@
 system:
   mode: 0 # 0 for graph mode, 1 for pynative mode in MindSpore
-  distribute: True
+  distribute: False
   amp_level: 'O0'
   seed: 42
   val_while_train: True
-  ckpt_save_dir: '/home/mindspore/lby_spencer/svtr_mindspore/svtr_mindspore/output/rec/1503versionr'
+  ckpt_save_dir: '/data1/lby_spencer/output/rec/1903vrsion'
 
 common:
   character_dict_path: &character_dict_path  #mindocr/utils/dict/en_dict.txt
@@ -62,10 +62,10 @@ loss:
 scheduler: 
   scheduler: warmup_cosine_decay
   min_lr: 0.0000001
-  lr: 0.0000625
-  num_epochs: 21
+  lr: 0.0005
+  num_epochs: 20
   warmup_epochs: 2
-  decay_epochs: 19
+  decay_epochs: 18
   
 optimizer:
   opt: adamw
@@ -79,7 +79,7 @@ train:
   dataset_sink_mode: False
   dataset:
     type: LMDBDataset
-    data_dir: /home/mindspore/lby_spencer/svtr_dataset/training
+    data_dir: /data1/lby_spencer/svtr_dataset/training
     # label_files: /data/ocr_datasets/ic15/word_recognition/rec_gt_train.txt
     sample_ratios: [1.0]
     shuffle: True
@@ -87,6 +87,8 @@ train:
       - DecodeImage:
           img_mode: BGR
           to_float32: False
+      - SVTRRecAug:
+          aug_type: 0
       - RecCTCLabelEncode:
           max_text_len: *max_text_len
           character_dict_path: *character_dict_path
@@ -112,14 +114,14 @@ train:
       batch_size: *batch_size
       drop_remainder: True
       max_rowsize: 12
-      num_workers: 4
+      num_workers: 2
 
 eval:
 #  ckpt_load_path: /home/mindspore/lby_spencer/svtr_mindspore/svtr_mindspore/output/rec/mindocr/best.ckpt
   dataset_sink_mode: False
   dataset:
     type: LMDBDataset
-    data_dir: /home/mindspore/lby_spencer/svtr_dataset/validation
+    data_dir: /data1/lby_spencer/svtr_dataset/validation
     # label_files: /data/ocr_datasets/ic15/word_recognition/rec_gt_train.txt
     sample_ratios: [1.0]
     shuffle: False
@@ -127,6 +129,8 @@ eval:
       - DecodeImage:
           img_mode: BGR
           to_float32: False
+      - SVTRRecAug:
+          aug_type: 0
       - RecCTCLabelEncode:
           max_text_len: *max_text_len
           character_dict_path: *character_dict_path
