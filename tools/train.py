@@ -2,8 +2,8 @@
 Model training
 '''
 import sys
+sys.path.append('./mindcv/')
 sys.path.append('.')
-
 import os
 import yaml
 import argparse
@@ -28,6 +28,7 @@ from mindocr.utils.train_step_wrapper import TrainOneStepWrapper
 from mindocr.utils.callbacks import EvalSaveCallback
 from mindocr.utils.seed import set_seed
 
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 def main(cfg):
     # env init
     ms.set_context(mode=cfg.system.mode)

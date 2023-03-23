@@ -11,7 +11,9 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+mindocr/mindocr/output/rec
 mindcv/
+output/
 build/
 develop-eggs/
 dist/
@@ -71,7 +73,7 @@ instance/
 
 # Scrapy stuff:
 .scrapy
-
+*.out
 # Sphinx documentation
 docs/_build/
 

@@ -1,5 +1,5 @@
 common:
-  batch_size: 64
+  batch_size: 256
   character_dict_path: null
   infer_mode: false
   max_text_len: 24
@@ -7,7 +7,7 @@ common:
   use_space_char: false
 eval:
   dataset:
-    data_dir: /data1/lby_spencer/svtr_dataset/validation
+    data_dir: /home/mindocr/lby_spencer/svtr_dataset/validation
     num_keys_to_net: 1
     output_keys:
     - image
@@ -48,10 +48,10 @@ eval:
     batch_size: 256
     drop_remainder: true
     max_rowsize: 12
-    num_workers: 4
+    num_workers: 2
     shuffle: false
 loss:
-  batch_size: 64
+  batch_size: 256
   max_label_len: 24
   pred_seq_len: 25
 metric:
@@ -138,14 +138,14 @@ scheduler:
   warmup_epochs: 2
 system:
   amp_level: O0
-  ckpt_save_dir: output/rec/1903vrsion
-  distribute: false
-  mode: 1
+  ckpt_save_dir: /home/mindocr/lby_spencer/mindocr/mindocr/output/rec/1903vrsion
+  distribute: true
+  mode: 0
   seed: 42
   val_while_train: true
 train:
   dataset:
-    data_dir: /data1/lby_spencer/svtr_dataset/validation
+    data_dir: /home/mindocr/lby_spencer/svtr_dataset/training
     num_keys_to_net: 1
     output_keys:
     - image
@@ -184,7 +184,7 @@ train:
     - ToCHWImage: null
   dataset_sink_mode: false
   loader:
-    batch_size: 64
+    batch_size: 256
     drop_remainder: true
     max_rowsize: 12
     num_workers: 4

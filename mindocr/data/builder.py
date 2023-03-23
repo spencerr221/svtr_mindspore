@@ -34,6 +34,7 @@ def build_dataset(
     '''
     # build datasets
     dataset_class_name = dataset_config.pop('type')
+    # dataset_class_name = dataset_config.type
     assert dataset_class_name in supported_dataset_types, "Invalid dataset name"
     dataset_class = eval(dataset_class_name)
 
