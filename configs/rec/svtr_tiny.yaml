@@ -4,7 +4,7 @@ system:
   amp_level: 'O0'
   seed: 42
   val_while_train: True
-  ckpt_save_dir: '/home/mindocr/lby_spencer/mindocr/mindocr/output/rec/2203version'
+  ckpt_save_dir: '/home/mindocr/lby_spencer/mindocr/mindocr/output/rec/2303version'
 
 common:
   character_dict_path: &character_dict_path  #mindocr/utils/dict/en_dict.txt
@@ -62,10 +62,10 @@ loss:
 scheduler: 
   scheduler: warmup_cosine_decay
   min_lr: 0.0000001
-  lr: 0.001
+  lr: 0.01
   num_epochs: 20
-  warmup_epochs: 2
-  decay_epochs: 18
+  warmup_epochs: 1
+  decay_epochs: 19
   
 optimizer:
   opt: adamw
@@ -117,11 +117,11 @@ train:
       num_workers: 4
 
 eval:
-  ckpt_load_path: /home/mindocr/lby_spencer/mindocr/mindocr/output/rec/2203version/best.ckpt
+  # ckpt_load_path: /home/mindocr/lby_spencer/mindocr/mindocr/output/rec/2203version/best.ckpt
   dataset_sink_mode: False
   dataset:
     type: LMDBDataset
-    data_dir: /home/mindocr/lby_spencer/svtr_dataset/evaluation
+    data_dir: /home/mindocr/lby_spencer/svtr_dataset/validation
     # label_files: /data/ocr_datasets/ic15/word_recognition/rec_gt_train.txt
     sample_ratios: [1.0]
     shuffle: False
