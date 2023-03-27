@@ -33,8 +33,8 @@ def build_dataset(
         data_loader (Dataset): dataloader to generate data batch 
     '''
     # build datasets
-    dataset_class_name = dataset_config.pop('type')
-    # dataset_class_name = dataset_config.type
+    # dataset_class_name = dataset_config.pop('type')
+    dataset_class_name = dataset_config.type
     assert dataset_class_name in supported_dataset_types, "Invalid dataset name"
     dataset_class = eval(dataset_class_name)
 
