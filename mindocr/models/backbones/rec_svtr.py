@@ -49,13 +49,15 @@ class ConvBNLayer(nn.Cell):
             pad_mode="pad",     #the 'pad' must be zero when 'pad_mode' is not 'pad', but got 'pad': 1 and 'pad_mode': same.
             padding=padding,
             group=groups,
-            weight_init=HeUniform(), #nonlinearity='relu'
-            # weight_init=3,
+            weight_init=HeUniform(), 
+            # weight_init=3.0,   #nonlinearity='relu'     #TODO: forward test
+            bias_init='zeros',
             has_bias=bias_attr)
         self.norm = nn.BatchNorm2d(out_channels)
         self.act = act
 
     def construct(self, inputs: Tensor) -> Tensor:
+        # import pdb; pdb.set_trace()
         out = self.conv(inputs)
         out = self.norm(out)
         out = self.act(out)
@@ -95,6 +97,7 @@ class Mlp(nn.Cell):
         self.drop = nn.Dropout(1-drop)
 
     def construct(self, x: Tensor) -> Tensor:
+        # import pdb;pdb.set_trace()
         x = self.fc1(x)
         x = self.act(x)
         x = self.drop(x)
@@ -118,8 +121,8 @@ class ConvMixer(nn.Cell):
             local_k,
             1, pad_mode='same',padding=[local_k[0] // 2, local_k[0] // 2,local_k[1] // 2,local_k[1] // 2],   #mindspore needs 4 int in tuple    #TODO: pad_mode
             group=num_heads,
-            weight_init=HeUniform()
-            # weight_init=3
+            weight_init=HeUniform() 
+            # weight_init=3  TODO: forward test
         )
 
     def construct(self, x: Tensor) -> Tensor:
@@ -334,6 +337,7 @@ class PatchEmbed(nn.Cell):
                 1] // patch_size[1]
 
     def construct(self, x: Tensor) -> Tensor:
+        # import pdb; pdb.set_trace()
         B, C, H, W = x.shape
         assert H == self.img_size[0] and W == self.img_size[1], \
             f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
@@ -370,7 +374,7 @@ class SubSample(nn.Cell):
                 pad_mode="pad",
                 weight_init=HeUniform(),
                 has_bias=True
-                # weight_init=3
+                # weight_init=3     #TODO forward testing
             )
         self.norm = eval(sub_norm)([out_channels])
         if act is not None:
@@ -554,7 +558,7 @@ class SVTRNet(nn.Cell):
         for name, m in self.cells_and_names():
             if isinstance(m, nn.Dense):
                 m.weight.set_data(init.initializer(TruncatedNormal(sigma=0.02), m.weight.shape))
-                # m.weight.set_data(init.initializer(init.Constant(1), m.weight.shape)) TODO fortest
+                # m.weight.set_data(init.initializer(init.Constant(1), m.weight.shape)) #TODO: forward test
                 # trunc_normal_(m.weight)
                 if m.bias is not None:
                     m.bias.set_data(init.initializer(init.Constant(0), m.bias.shape))
@@ -603,6 +607,7 @@ class SVTRNet(nn.Cell):
         # if self.use_lenhead:     #TODO: for graph mode
         #     return x,len_x
         return [x]
+        # return x
     
 @register_backbone
 def rec_svtr(pretrained: bool = True, **kwargs):

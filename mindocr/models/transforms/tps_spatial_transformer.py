@@ -11,8 +11,10 @@ import mindspore.numpy as ms_np
 import mindspore.ops as ops
 from mindspore.common.initializer import initializer, Normal
 import itertools
+from numpy.linalg import det
 
 matrix_inverse = ops.MatrixInverse(adjoint=False)
+matrix_inverse.add_prim_attr("primitive_target","CPU")
 
 def build_output_control_points(num_control_points, margins):
     margin_x, margin_y = margins
@@ -59,6 +61,32 @@ def grid_sample(input, grid, canvas=None):
         padded_output = output * output_mask + canvas * (1 - output_mask)
         return padded_output
 
+# def cof1(M,index):
+#     zs = M[:index[0]-1,:index[1]-1]
+#     ys = M[:index[0]-1,index[1]:]
+#     zx = M[index[0]:,:index[1]-1]
+#     yx = M[index[0]:,index[1]:]
+#     s = np.concatenate((zs,ys),axis=1)
+#     x = np.concatenate((zx,yx),axis=1)
+#     matrix = np.concatenate((s,x),axis=0)
+#     ans = det(matrix)
+#     return ans
+ 
+# def alcof(M,index):
+#     return pow(-1,index[0]+index[1])*cof1(M,index)
+ 
+# def adj(M):
+#     result = np.zeros((M.shape[0],M.shape[1]))
+#     for i in range(1,M.shape[0]+1):
+#         for j in range(1,M.shape[1]+1):
+#             result[j-1][i-1] = alcof(M,[i,j])
+#     return result
+ 
+# def invmat(M):
+#     # det_m = M.matrix_determinant()
+#     return 1.0/det(M)*adj(M)
+
+
 class TPSSpatialTransformer(nn.Cell):
     def __init__(self,
                  output_image_size=None,
@@ -89,12 +117,13 @@ class TPSSpatialTransformer(nn.Cell):
         forward_kernel[:N, -2:] = target_control_points
         forward_kernel[-2:, :N] = ops.transpose(
             target_control_points, input_perm=(1, 0))
-        # compute inverse matrix
-        forward_kernel=Tensor(forward_kernel)
-
-        inverse_kernel = matrix_inverse(forward_kernel)
-
-
+        # ============================== compute inverse matrix===================
+        forward_kernel_m = Tensor(forward_kernel)
+        inverse_kernel = matrix_inverse(forward_kernel_m)
+        #========================start========matrix_inverse======================
+        # import pdb; pdb.set_trace()
+        # inverse_kernel = invmat(forward_kernel)
+        # inverse_kernel = Tensor(inverse_kernel)
         # create target cordinate matrix
         HW = self.target_height * self.target_width
         target_coordinate = list(itertools.product(range(self.target_height), range(self.target_width)))
@@ -139,13 +168,11 @@ class TPSSpatialTransformer(nn.Cell):
         assert source_control_points.shape[2] == 2
         batch_size = ops.shape(source_control_points)[0]
         expand_as=ops.ones((batch_size,3,2),mindspore.float32)
-
         padding_matrix = self.padding_matrix.expand_as(expand_as)
         Y = ops.concat([source_control_points, padding_matrix], 1)
         mapping_matrix = ops.matmul(self.inverse_kernel, Y)
         mapping_matrix = ops.cast(mapping_matrix, mindspore.float16)
         source_coordinate = ops.matmul(self.target_coordinate_repr,mapping_matrix)   #float32 and float32
-        # import pdb;pdb.set_trace()
         grid = ops.reshape(source_coordinate, (source_coordinate.shape[0], self.target_height, self.target_width, 2))           #TODO may not work
         grid = grid.clip(0,1)  # the source_control_points may be out of [0, 1].
         # the input to grid_sample is normalized [-1, 1], but what we get is [0, 1]

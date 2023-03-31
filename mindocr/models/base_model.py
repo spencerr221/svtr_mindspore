@@ -1,6 +1,5 @@
 from addict import Dict
 from mindspore import nn
-
 from .transforms import build_trans
 from .backbones import build_backbone
 from .necks import build_neck
@@ -77,25 +76,40 @@ class BaseModel(nn.Cell):
         
         return hout
 
+# def parse_args():
+#     parser = argparse.ArgumentParser(description='Training Config', add_help=False)
+#     parser.add_argument('-c', '--config', type=str, default='/home/mindocr/lby_spencer/mindocr/mindocr/configs/rec/svtr_tiny.yaml',
+#                         help='YAML config file specifying default arguments (default='')')
+#     args = parser.parse_args()
+
+#     return args
+
 
 if __name__=='__main__':
-    model_config = {
-            "backbone": {
-                'name': 'det_resnet50',
-                'pretrained': False 
-                },
-            "neck": {
-                "name": 'FPN',
-                "out_channels": 256,
-                },
-            "head": {
-                "name": 'ConvHead',
-                "out_channels": 2,
-                "k": 50
-                }
+    # model_config = {
+    #         "backbone": {
+    #             'name': 'det_resnet50',
+    #             'pretrained': False 
+    #             },
+    #         "neck": {
+    #             "name": 'FPN',
+    #             "out_channels": 256,
+    #             },
+    #         "head": {
+    #             "name": 'ConvHead',
+    #             "out_channels": 2,
+    #             "k": 50
+    #             }
             
-            }
-    model_config.pop('neck')
+    #         }
+    # model_config.pop('neck')
+    import pdb; pdb.set_trace()
+    args = parse_args()
+    yaml_fp = args.config
+    with open(yaml_fp) as fp:
+        config = yaml.safe_load(fp)
+    config = Dict(config)
+    model_config = config.model
     model = BaseModel(model_config) 
 
     import mindspore as ms
