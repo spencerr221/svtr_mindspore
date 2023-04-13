@@ -2,16 +2,16 @@
 Model evaluation 
 '''
 import sys
-sys.path.append('./mindcv/')
-sys.path.append('.')
-
 import os
+__dir__ = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.abspath(os.path.join(__dir__, "..")))
+
 import yaml
 import argparse
 from addict import Dict
 
 import mindspore as ms
-from mindspore import nn
+from mindspore.communication import init, get_rank, get_group_size
 
 from mindocr.data import build_dataset
 from mindocr.models import build_model
@@ -37,9 +37,32 @@ def main(cfg):
     ms.set_context(mode=cfg.system.mode)
     ms.set_context(device_id=0)
     if cfg.system.distribute:
-        print("WARNING: Distribut mode blocked. Evaluation only runs in standalone mode.")
-    assert 'ckpt_load_path' in cfg.eval, f'Please provide \n`eval:\n\tckpt_load_path`\n in the yaml config file '
+        init()
+        device_num = get_group_size()
+        rank_id = get_rank()
+        ms.set_auto_parallel_context(device_num=device_num,
+                                     parallel_mode='data_parallel',
+                                     gradients_mean=True,
+                                     )
+    else:
+        device_num = None
+        rank_id = None
+
+    is_main_device = rank_id in [None, 0]
+
+    # load dataset
+    loader_eval = build_dataset(
+            cfg.eval.dataset,
+            cfg.eval.loader,
+            num_shards=device_num,
+            shard_id=rank_id,
+            is_train=False,
+            refine_batch_size=True,
+            )
+    num_batches = loader_eval.get_dataset_size()
+
     # model
+    cfg.model.backbone.pretrained = False
     network = build_model(cfg.model, ckpt_load_path=cfg.eval.ckpt_load_path)
     network.set_train(False)
     # import pdb; pdb.set_trace()

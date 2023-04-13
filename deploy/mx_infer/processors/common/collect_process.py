@@ -6,10 +6,9 @@ from multiprocessing import Manager
 import cv2
 import numpy as np
 
-from deploy.mx_infer.data_type import StopData, ProcessData, ProfilingData
-from deploy.mx_infer.framework import ModuleBase, InferModelComb
-from deploy.mx_infer.utils import safe_list_writer, log
-
+from mx_infer.data_type import StopData, ProcessData, ProfilingData
+from mx_infer.framework import ModuleBase, InferModelComb
+from mx_infer.utils import safe_list_writer, log
 from tools.utils.visualize import VisMode, Visualization
 
 _RESULTS_SAVE_FILENAME = {
@@ -61,6 +60,8 @@ class CollectProcess(ModuleBase):
             box_line = vis_tool(image, box_list)
             cv2.imwrite(filename + '.jpg', box_line)
 
+        log.info(f"{image_name} is finished.")
+
     def final_text_save(self):
         save_filename = os.path.join(self.infer_res_save_path, self.save_filename)
         safe_list_writer(self.image_pipeline_res, save_filename)
@@ -71,6 +72,8 @@ class CollectProcess(ModuleBase):
             for result in input_data.infer_result:
                 self.image_pipeline_res[input_data.image_name].append(
                     {"transcription": result[-1], "points": result[:-1]})
+            if not input_data.infer_result:
+                self.image_pipeline_res[input_data.image_name] = []
         elif self.task_type == InferModelComb.DET:
             self.image_pipeline_res[input_data.image_name].extend(input_data.infer_result)
         elif self.task_type == InferModelComb.REC:

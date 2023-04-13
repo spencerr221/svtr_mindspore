@@ -1,8 +1,8 @@
+import json
 import os
 import re
-import stat
-import json
 import shutil
+import stat
 
 import cv2
 
@@ -122,7 +122,9 @@ def safe_img_read(path: str):
     return img
 
 
-def save_path_init(path):
+def save_path_init(path, exist_ok=False):
     if os.path.exists(path):
+        if exist_ok:
+            return
         shutil.rmtree(path)
     os.makedirs(path, 0o750)

@@ -1,11 +1,11 @@
-"""
-Code adopted from paddle.
-TODO: overwrite
-"""
 from typing import List
 
 import numpy as np
-from mindspore import nn
+import mindspore as ms
+from mindspore import nn, ms_function
+import mindspore.ops as ops
+from mindspore import  Tensor
+from mindspore.communication import get_group_size
 from shapely.geometry import Polygon
 from sklearn.metrics import recall_score, precision_score, f1_score
 
@@ -76,51 +76,16 @@ class DetectionIoUEvaluator:
         return gt_labels, det_labels
 
 
-class QuadMetric:
-    def __init__(self, is_output_polygon=False):
-        self.is_output_polygon = is_output_polygon
-        self.evaluator = DetectionIoUEvaluator()
-
-    def __call__(self, batch, output, box_thresh=0.7):
-        """
-        batch: (image, polygons, ignore_tags)
-            image: numpy array of shape (N, C, H, W).
-            polys: numpy array of shape (N, K, 4, 2), the polygons of objective regions.
-            ignore: numpy array of shape (N, K), indicates whether a region is ignorable or not.
-        output: (polygons, ...)
-        """
-        gt_polys = batch['polys'].astype(np.float32)
-        gt_ignore_info = batch['ignore']
-        pred_polys = np.array(output[0])
-        pred_scores = np.array(output[1])
-
-        gt_labels, det_labels = [], []
-        for sample_id in range(len(gt_polys)):
-            gt = [{'polys': gt_polys[sample_id][j], 'ignore': gt_ignore_info[sample_id][j]}
-                  for j in range(len(gt_polys[sample_id]))]
-            if self.is_output_polygon:
-                pred = [sample for sample in pred_polys[sample_id]]     # TODO: why are polygons not filtered?
-            else:
-                pred = [pred_polys[sample_id][j].astype(np.int32)
-                        for j in range(pred_polys[sample_id].shape[0]) if pred_scores[sample_id][j] >= box_thresh]
-
-            gt_label, det_label = self.evaluator(gt, pred)
-            gt_labels.append(gt_label)
-            det_labels.append(det_label)
-        return gt_labels, det_labels
-
-    def validate_measure(self, batch, output):
-        return self(batch, output, box_thresh=0.55)  # TODO: why is here a fixed threshold and different from the above?
-
-
-# TODO: improve the efficiency ?
 class DetMetric(nn.Metric):
-    def __init__(self, **kwargs):
+    def __init__(self, device_num=1, **kwargs):
         super().__init__()
-        self.clear()
+        self._evaluator = DetectionIoUEvaluator()
+        self._gt_labels, self._det_labels = [], []
+        self.device_num = device_num
+        self.all_reduce = None if device_num==1 else ops.AllReduce()
+        self.metric_names = ['recall', 'precision', 'f-score']
 
     def clear(self):
-        self._metric = QuadMetric()
         self._gt_labels, self._det_labels = [], []
 
     def update(self, *inputs):
@@ -129,19 +94,32 @@ class DetMetric(nn.Metric):
 
         Args:
             inputs (tuple): contain two elements preds, gt
-                    preds (dict): prediction output by postprocess, required keys:
-                        - polygons
-                        - scores
-                    gt (tuple): ground truth, order defined by output_keys in eval dataloader
+                    preds (list[tuple]): text detection prediction as a list of tuple (polygon, confidence),
+                        where polygon is in shape [num_boxes, 4, 2], confidence is in shape [num_boxes]
+                    gts (tuple): ground truth - (polygons, ignore_tags), where polygons are in shape [num_images, num_boxes, 4, 2],
+                        ignore_tags are in shape [num_images, num_boxes], which can be defined by output_columns in yaml
         """
         preds, gts = inputs
-        polys, ignore = gts
-        boxes, scores = preds['polygons'], preds['scores']
-        gt = {'polys': polys.asnumpy(), 'ignore': ignore.asnumpy()}
+        polys, ignore = gts[0].asnumpy().astype(np.float32), gts[1].asnumpy()
 
-        gt_labels, det_labels = self._metric.validate_measure(gt, (boxes, scores))
-        self._gt_labels.extend(gt_labels)
-        self._det_labels.extend(det_labels)
+        for sample_id in range(len(polys)):
+            gt = [{'polys': poly, 'ignore': ig} for poly, ig in zip(polys[sample_id], ignore[sample_id])]
+            gt_label, det_label = self._evaluator(gt, preds[sample_id][0])
+            self._gt_labels.append(gt_label)
+            self._det_labels.append(det_label)
+
+    @ms_function
+    def all_reduce_fun(self, x):
+        res = self.all_reduce(x)
+        return res
+
+    def cal_matrix(self, det_lst, gt_lst):
+        tp = np.sum((gt_lst == 1) * (det_lst == 1))
+        fn = np.sum((gt_lst == 1) * (det_lst == 0))
+        fp = np.sum((gt_lst == 0) * (det_lst == 1))
+        return tp, fp, fn
+
+
 
     def eval(self):
         """
@@ -155,12 +133,25 @@ class DetMetric(nn.Metric):
         # flatten predictions and labels into 1D-array
         self._det_labels = np.array([l for label in self._det_labels for l in label])
         self._gt_labels = np.array([l for label in self._gt_labels for l in label])
+
+        tp, fp, fn = self.cal_matrix(self._det_labels, self._gt_labels)
+        if self.all_reduce:
+            tp = float(self.all_reduce_fun(Tensor(tp, ms.float32)).asnumpy())
+            fp = float(self.all_reduce_fun(Tensor(fp, ms.float32)).asnumpy())
+            fn = float(self.all_reduce_fun(Tensor(fn, ms.float32)).asnumpy())
+
+        recall = _safe_divide(tp, (tp + fn))
+        precision = _safe_divide(tp, (tp + fp))
+        f_score = _safe_divide(2 * recall * precision, (recall + precision))
         return {
-            'recall': recall_score(self._gt_labels, self._det_labels),
-            'precision': precision_score(self._gt_labels, self._det_labels),
-            'f-score': f1_score(self._gt_labels, self._det_labels)
+            'recall': recall,
+            'precision': precision,
+            'f-score': f_score
         }
 
 
-if __name__ == '__main__':
-    m = DetMetric()
+def _safe_divide(numerator, denominator, val_if_zero_divide=0.):
+    if denominator == 0:
+        return val_if_zero_divide
+    else:
+        return numerator / denominator

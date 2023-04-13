@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 
-from deploy.mx_infer.framework import ModuleBase
-from deploy.mx_infer.utils import get_mini_boxes, unclip, construct_box, box_score_slow, \
+from mx_infer.framework import ModuleBase
+from mx_infer.utils import get_mini_boxes, unclip, construct_box, box_score_slow, \
     get_rotate_crop_image, get_hw_of_img, safe_div, box_score_fast
 
 
@@ -36,7 +36,7 @@ class DetPostProcess(ModuleBase):
         outs = cv2.findContours((binary_map * 255).astype(np.uint8), cv2.RETR_LIST,
                                 cv2.CHAIN_APPROX_SIMPLE)
         if len(outs) == 3:
-            img, contours, _ = outs[0], outs[1], outs[2]
+            _, contours, _ = outs[0], outs[1], outs[2]
         elif len(outs) == 2:
             contours, _ = outs[0], outs[1]
 
