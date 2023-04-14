@@ -84,7 +84,6 @@ class TrainOneStepWrapper(nn.TrainOneStepWithLossScaleCell):
         weights = self.weights
         loss = self.network(*inputs)
         scaling_sens = self.scale_sense
-        
         if not self.is_cpu_device:
             status, scaling_sens = self.start_overflow_check(loss, scaling_sens)
         else:
