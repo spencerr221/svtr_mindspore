@@ -44,7 +44,6 @@ def grouping_svtr(params, weight_decay):
             no_decay_params.append(param)
         else:
             decay_params.append(param)
-
     return [
         {"params": decay_params, "weight_decay": weight_decay},
         {"params": no_decay_params},

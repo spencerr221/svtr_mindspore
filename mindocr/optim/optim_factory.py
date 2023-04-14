@@ -38,6 +38,8 @@ def create_optimizer(
     nesterov: bool = False,
     filter_bias_and_bn: bool = True,
     loss_scale: float = 1.0,
+    beta1: float = 0.9,
+    beta2: float = 0.99,
     schedule_decay: float = 4e-3,
     checkpoint_path: str = "",
     eps: float = 1e-10,
@@ -134,6 +136,8 @@ def create_optimizer(
             learning_rate=lr,
             weight_decay=weight_decay,
             loss_scale=loss_scale,
+            beta2=beta2,
+            beta1=beta1,
             **opt_args,
         )
     elif opt == "lion":

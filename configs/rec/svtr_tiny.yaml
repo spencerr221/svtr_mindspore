@@ -1,6 +1,6 @@
 system:
-  mode: 1 # 0 for graph mode, 1 for pynative mode in MindSpore
-  distribute: False
+  mode: 0 # 0 for graph mode, 1 for pynative mode in MindSpore
+  distribute: True
   amp_level: 'O0'
   seed: 42
   val_while_train: True
@@ -76,6 +76,8 @@ optimizer:
   nesterov: False
   beta1: 0.9
   beta2: 0.99
+  no_weight_decay_params: ['beta', 'gamma', 'pos_emb', 'bias'] # filter norm and bias params from weight decay
+  grouping_strategy: 'svtr'
 
 loss_scaler:
   type: static
